@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import dns from "dns";
 import http from "http";
 import cors from "cors";
 import helmet from "helmet";
@@ -40,6 +41,59 @@ import { stopScheduledJobs } from "./app/services/distributedScheduler.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, ".env") });
+
+/**
+ * Force known public DNS resolvers for MongoDB+SRV lookups to avoid
+ * local DNS issues (e.g. querySrv ECONNREFUSED).
+ *
+ * Enablement:
+ * - In production: only when explicitly opted-in via FORCE_PUBLIC_DNS=true or MONGO_FORCE_PUBLIC_DNS=true
+ * - In non-production: enabled automatically when using mongodb+srv://, unless set to false via *_FORCE_PUBLIC_DNS=false
+ */
+function configurePublicDnsForMongoSrv() {
+  const mongoUri = String(
+    process.env.MONGO_URI ||
+      process.env.MONGODB_URI ||
+      process.env.DATABASE_URL ||
+      "",
+  ).trim();
+
+  if (!mongoUri || !mongoUri.toLowerCase().startsWith("mongodb+srv://")) {
+    return;
+  }
+
+  const env = String(process.env.NODE_ENV || "development").toLowerCase();
+  const forceFlag = (
+    process.env.FORCE_PUBLIC_DNS ?? process.env.MONGO_FORCE_PUBLIC_DNS
+  );
+
+  if (env === "production") {
+    if (String(forceFlag || "").toLowerCase() !== "true") return;
+  } else {
+    if (String(forceFlag || "").toLowerCase() === "false") return;
+  }
+
+  const rawServers =
+    process.env.DNS_SERVERS ||
+    process.env.MONGO_DNS_SERVERS ||
+    "8.8.8.8,8.8.4.4,1.1.1.1";
+
+  const servers = rawServers
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (servers.length === 0) return;
+
+  try {
+    dns.setServers(servers);
+  } catch (error) {
+    // Keep startup flow intact; Mongo may still work with system DNS.
+    console.warn("[DNS] Failed to set custom DNS servers:", error?.message || error);
+  }
+}
+
+configurePublicDnsForMongoSrv();
 
 const PORT = parseInt(process.env.PORT || '7000', 10);
 const HEALTH_CHECK_PORT = parseInt(process.env.HEALTH_CHECK_PORT || '9090', 10);
