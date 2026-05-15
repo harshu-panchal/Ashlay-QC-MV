@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import User from "../../models/customer.js";
+import Customer from "../../models/customer.js";
 import Order from "../../models/order.js";
 
 export async function getUsersData({ page, limit, skip }) {
@@ -37,7 +37,7 @@ export async function getUsersData({ page, limit, skip }) {
     { $sort: { totalOrders: -1 } },
   ];
 
-  const [result] = await User.aggregate([
+  const [result] = await Customer.aggregate([
     ...pipeline,
     {
       $facet: {
@@ -60,7 +60,7 @@ export async function getUsersData({ page, limit, skip }) {
 }
 
 export async function getUserByIdData(id) {
-  const user = await User.aggregate([
+  const user = await Customer.aggregate([
     {
       $match: {
         _id: new mongoose.Types.ObjectId(id),

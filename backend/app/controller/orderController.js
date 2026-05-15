@@ -6,7 +6,7 @@ import StockHistory from "../models/stockHistory.js";
 import Seller from "../models/seller.js";
 import Delivery from "../models/delivery.js";
 import Setting from "../models/setting.js";
-import User from "../models/customer.js";
+import Customer from "../models/customer.js";
 import CheckoutGroup from "../models/checkoutGroup.js";
 import Payout from "../models/payout.js";
 import OrderOtp from "../models/orderOtp.js";

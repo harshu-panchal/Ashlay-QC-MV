@@ -99,6 +99,10 @@ export const AuthProvider = ({ children }) => {
                 .catch((error) => {
                     // Permission denied / unsupported / any error: user can retry later from push-enabled actions.
                     console.warn('[push] Auto-registration skipped:', error?.message || error);
+                    if (error.response?.status === 404) {
+                        console.warn('[push] User not found during registration. Clearing session.');
+                        logout();
+                    }
                 });
         }, 0);
 
@@ -122,8 +126,14 @@ export const AuthProvider = ({ children }) => {
                     setUser(response.data.result);
                 } catch (error) {
                     console.error('Failed to fetch profile:', error);
-                    // Preserve stored tokens on request failures; only manual logout clears auth storage.
-                    setUser(null);
+                    // If the user is not found (404), it means the session is invalid/zombie.
+                    // We should clear the session to allow the user to log in again.
+                    if (error.response?.status === 404) {
+                        console.warn('[AuthContext] User not found in database. Clearing session.');
+                        logout();
+                    } else {
+                        setUser(null);
+                    }
                 } finally {
                     setIsLoading(false);
                 }
@@ -190,17 +200,25 @@ export const AuthProvider = ({ children }) => {
         else window.location.href = '/login';
     };
 
-    const refreshUser = async () => {
+    const refreshProfile = async () => {
         if (token) {
             try {
                 const endpoint = `/${currentRole}/profile`;
                 const response = await axiosInstance.get(endpoint);
-                setUser(response.data.result);
-                return response.data.result;
+                const profileData = response.data.result;
+                setUser(profileData);
+                return profileData;
             } catch (error) {
                 console.error('Failed to refresh profile:', error);
             }
         }
+    };
+
+    const updateUserProfile = (updatedData) => {
+        setUser(prev => {
+            if (!prev) return updatedData;
+            return { ...prev, ...updatedData };
+        });
     };
 
     const value = useMemo(() => ({
@@ -212,7 +230,8 @@ export const AuthProvider = ({ children }) => {
         authData,
         login,
         logout,
-        refreshUser
+        refreshProfile,
+        updateUserProfile
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [user, token, currentRole, isAuthenticated, isLoading, authData]);
 

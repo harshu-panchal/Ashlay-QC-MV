@@ -35,7 +35,7 @@ export const NOTIFICATION_ROLES = Object.freeze({
 });
 
 export const ROLE_TO_USER_MODEL = Object.freeze({
-  [NOTIFICATION_ROLES.CUSTOMER]: "User",
+  [NOTIFICATION_ROLES.CUSTOMER]: "Customer",
   [NOTIFICATION_ROLES.SELLER]: "Seller",
   [NOTIFICATION_ROLES.DELIVERY]: "Delivery",
   [NOTIFICATION_ROLES.ADMIN]: "Admin",

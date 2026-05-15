@@ -142,4 +142,4 @@ productSchema.index({ sellerId: 1, approvalStatus: 1, createdAt: -1 });
 productSchema.index({ sellerId: 1, createdAt: -1, _id: -1 });
 productSchema.index({ name: "text", tags: "text" }); // For better search if regex is too slow
 
-export default mongoose.model("Product", productSchema);
+export default mongoose.model("Product", productSchema, "quick_products");

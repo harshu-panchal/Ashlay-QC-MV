@@ -155,4 +155,4 @@ sellerSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-export default mongoose.model("Seller", sellerSchema);
+export default mongoose.model("Seller", sellerSchema, "quick_sellers");

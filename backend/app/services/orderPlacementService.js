@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Cart from "../models/cart.js";
 import CheckoutGroup from "../models/checkoutGroup.js";
 import Order from "../models/order.js";
-import User from "../models/customer.js";
+import Customer from "../models/customer.js";
 import Transaction from "../models/transaction.js";
 import Coupon from "../models/coupon.js";
 import { WORKFLOW_STATUS, DEFAULT_SELLER_TIMEOUT_MS } from "../constants/orderWorkflow.js";
@@ -291,7 +291,7 @@ export async function placeOrderAtomic({
     const tipAmount = Math.max(0, Number(normalizedPayload.tipAmount || 0));
 
     // 1. Fetch user and validate wallet
-    const user = await User.findById(customerId).session(session);
+    const user = await Customer.findById(customerId).session(session);
     if (walletAmount > 0) {
       if (!user) throw new Error("User not found");
       if (user.walletBalance < walletAmount) {
@@ -447,7 +447,7 @@ export async function placeOrderAtomic({
 
       await Transaction.create({
         user: customerId,
-        userModel: "User",
+        userModel: "Customer",
         type: "Wallet Payment",
         amount: -walletAmount,
         status: "Settled",

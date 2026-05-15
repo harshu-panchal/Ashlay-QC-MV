@@ -1,4 +1,4 @@
-import User from "../../models/customer.js";
+import Customer from "../../models/customer.js";
 import Seller from "../../models/seller.js";
 import Delivery from "../../models/delivery.js";
 import Order from "../../models/order.js";
@@ -9,7 +9,7 @@ const DASHBOARD_CATEGORY_COLORS = ["#4f46e5", "#10b981", "#f59e0b", "#ef4444"];
 export async function getAdminDashboardStats() {
   const [totalCustomers, totalSellers, totalRiders, totalOrders] =
     await Promise.all([
-      User.countDocuments({ role: "user" }),
+      Customer.countDocuments({ role: "user" }),
       Seller.countDocuments(),
       Delivery.countDocuments(),
       Order.countDocuments(),

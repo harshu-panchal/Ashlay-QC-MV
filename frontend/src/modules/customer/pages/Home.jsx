@@ -409,38 +409,39 @@ const Home = () => {
   };
 
   return (
-    <div className={`min-h-screen pt-[190px] md:pt-[250px] ${products.length === 0 && !isLoading ? "bg-white" : "bg-[#F5F7F8]"}`}>
+    <div className={`min-h-screen pt-[190px] md:pt-[250px] bg-[#F5F7F8]`}>
       <div className={cn("contents", isProductDetailOpen && "hidden md:contents")}>
         <MainLocationHeader categories={categories} activeCategory={activeCategory} onCategorySelect={setActiveCategory} />
       </div>
 
+      <motion.div ref={heroRef} className="block md:hidden will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
+        <div className="relative w-full overflow-hidden">
+          {heroConfig.banners?.items?.length ? (
+            <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} fullWidth edgeToEdge />
+          ) : (
+            <div className="w-full h-[190px] bg-[#ecfeff] p-6 relative overflow-hidden flex items-center border-y border-primary/10 shadow-sm">
+              <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
+                <h4 className="text-2xl font-black text-[#1A1A1A] tracking-tight">Get <span className="text-primary">Products</span></h4>
+                <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide">Order now</button>
+              </div>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mt-12 -mr-12" />
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      <PromoMarquee />
+      <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/category/${id}`)} />
+
       {products.length === 0 && !isLoading ? (
-        <div className="flex flex-col items-center justify-center pt-24 pb-48">
-          <div className="w-64 h-64 md:w-96 md:h-96 mb-8">{noServiceData && <Lottie animationData={noServiceData} loop={true} />}</div>
-          <h3 className="text-3xl md:text-5xl font-black text-slate-800 text-center uppercase">Service <span className="text-primary">Unavailable</span></h3>
-          <p className="text-slate-500 font-bold max-w-md text-center px-10 text-sm md:text-lg opacity-80">Ah! We haven't reached your neighborhood yet.</p>
-          <button onClick={() => window.location.reload()} className="mt-12 px-10 py-4 bg-primary text-white font-black rounded-[24px] uppercase text-[13px] tracking-widest transition-all active:scale-95">Check Again</button>
+        <div className="flex flex-col items-center justify-center pt-12 pb-24 px-6">
+          <div className="w-48 h-48 md:w-64 md:h-64 mb-6 opacity-80">{noServiceData && <Lottie animationData={noServiceData} loop={true} />}</div>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-800 text-center uppercase tracking-tight">Service <span className="text-primary">Unavailable</span></h3>
+          <p className="text-slate-500 font-medium max-w-xs text-center mt-2 text-sm md:text-base opacity-70">Ah! We haven't reached your neighborhood yet.</p>
+          <button onClick={() => fetchData({ forceRefresh: true })} className="mt-8 px-8 py-3 bg-primary text-white font-bold rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg shadow-primary/20">Check Again</button>
         </div>
       ) : (
         <>
-          <motion.div ref={heroRef} className="block md:hidden will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
-            <div className="relative w-full overflow-hidden">
-              {heroConfig.banners?.items?.length ? (
-                <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} fullWidth edgeToEdge />
-              ) : (
-                <div className="w-full h-[190px] bg-[#ecfeff] p-6 relative overflow-hidden flex items-center border-y border-primary/10 shadow-sm">
-                  <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
-                    <h4 className="text-2xl font-black text-[#1A1A1A] tracking-tight">Get <span className="text-primary">Products</span></h4>
-                    <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide">Order now</button>
-                  </div>
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mt-12 -mr-12" />
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          <PromoMarquee />
-          <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/category/${id}`)} />
           <LowestPriceSection products={products} onSeeAll={() => navigate("/category/all")} />
           <OfferSections sections={offerSections} noServiceData={noServiceData} />
 

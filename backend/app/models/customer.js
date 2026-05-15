@@ -103,17 +103,21 @@ const userSchema = new mongoose.Schema(
         },
 
         addresses: [addressSchema],
-
         walletBalance: {
             type: Number,
             default: 0,
         },
-
+        bio: {
+            type: String,
+            trim: true,
+        },
+        avatar: {
+            type: String,
+        },
         isActive: {
             type: Boolean,
             default: true,
         },
-
         lastLogin: Date,
     },
     {
@@ -130,4 +134,4 @@ userSchema.pre("validate", function(next) {
     next();
 });
 
-export default mongoose.model("User", userSchema);
+export default mongoose.model("Customer", userSchema, "quick_users");

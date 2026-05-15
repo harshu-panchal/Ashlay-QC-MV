@@ -4,7 +4,7 @@ import PushToken from "./token.model.js";
 import NotificationPreference from "./preference.model.js";
 import handleResponse from "../../utils/helper.js";
 import getPagination from "../../utils/pagination.js";
-import User from "../../models/customer.js";
+import Customer from "../../models/customer.js";
 import Seller from "../../models/seller.js";
 import Delivery from "../../models/delivery.js";
 import Admin from "../../models/admin.js";
@@ -104,7 +104,8 @@ function normalizeLoginUser(doc) {
 async function fetchLoginUser(userModelName, userId) {
   // Note: customer model file exports model("User"), but is used as "Customer" elsewhere.
   const MODEL_MAP = {
-    User,
+    User: Customer,
+    Customer,
     Seller,
     Delivery,
     Admin,
@@ -552,7 +553,7 @@ export const getBroadcastAudienceStats = async (req, res) => {
     }
 
     const [customers, sellers, delivery] = await Promise.all([
-      User.countDocuments({
+      Customer.countDocuments({
         role: { $in: ["user", "customer"] },
       }),
       Seller.countDocuments({}),

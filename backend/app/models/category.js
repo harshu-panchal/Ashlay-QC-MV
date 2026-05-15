@@ -240,4 +240,4 @@ categorySchema.virtual("children", {
   foreignField: "parentId",
 });
 
-export default mongoose.model("Category", categorySchema);
+export default mongoose.model("Category", categorySchema, "quick_categories");

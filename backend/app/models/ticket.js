@@ -4,7 +4,7 @@ const ticketSchema = new mongoose.Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+            ref: "Customer",
             required: true,
         },
         userType: {
@@ -43,7 +43,7 @@ const ticketSchema = new mongoose.Schema(
                 },
                 senderType: {
                     type: String,
-                    enum: ["User", "Admin"],
+                    enum: ["Customer", "Admin"],
                     required: true,
                 },
                 text: {
