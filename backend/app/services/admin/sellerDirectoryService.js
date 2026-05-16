@@ -35,16 +35,18 @@ export async function getSellerLocationsData({
     ? Math.min(Math.max(requestedMapLimit, 0), 2000)
     : 500;
 
-  const filters = [];
+  const pipeline = [];
+
+  // 1. Initial Match
+  const match = { $and: [] };
   if (normalizedCategory && normalizedCategory !== "all") {
-    filters.push({
+    match.$and.push({
       category: new RegExp(`^${escapeRegExp(normalizedCategory)}$`, "i"),
     });
   }
-
   if (search) {
     const searchRegex = new RegExp(escapeRegExp(search), "i");
-    filters.push({
+    match.$and.push({
       $or: [
         { name: searchRegex },
         { shopName: searchRegex },
@@ -55,59 +57,22 @@ export async function getSellerLocationsData({
       ],
     });
   }
+  if (match.$and.length === 0) delete match.$and;
+  if (Object.keys(match).length > 0) pipeline.push({ $match: match });
 
-  const baseQuery = filters.length ? { $and: filters } : {};
-  const sellers = await Seller.find(baseQuery)
-    .select(
-      "_id name shopName email phone category address location serviceRadius isActive isVerified applicationStatus reviewedAt createdAt rejectionReason",
-    )
-    .lean();
-
-  const filteredByStatus = sellers.filter((seller) =>
-    matchSellerLifecycleFilter(seller, normalizedLifecycle),
-  );
-
-  const sellersWithDerivedFields = filteredByStatus.map((seller) => {
-    const coords = Array.isArray(seller.location?.coordinates)
-      ? seller.location.coordinates
-      : [];
-    const lng = Number(coords[0]);
-    const lat = Number(coords[1]);
-    const locationValid = hasValidSellerLocation(seller);
-    const radiusKm = normalizeRadiusKm(seller.serviceRadius, 5);
-    const cityLabel = extractSellerCity(seller);
-
-    return {
-      ...seller,
-      id: String(seller._id),
-      city: cityLabel,
-      lifecycle: resolveSellerLifecycleStatus(seller),
-      hasValidLocation: locationValid,
-      lat: locationValid ? lat : null,
-      lng: locationValid ? lng : null,
-      serviceRadiusKm: radiusKm,
-      locationLabel: seller.address || "Location not set",
-    };
-  });
-
-  const filteredByCity = sellersWithDerivedFields.filter((seller) => {
-    if (!normalizedCity || normalizedCity === "all") {
-      return true;
-    }
-
-    return seller.city.toLowerCase() === normalizedCity.toLowerCase();
-  });
-
-  const sellerIds = filteredByCity.map((seller) => seller._id);
-  const activeStatuses = ["pending", "confirmed", "packed", "out_for_delivery"];
+  // 2. Lookup Order Stats
+  const activeStatuses = ["pending", "confirmed", "packed", "picked_up", "out_for_delivery"];
   const recentWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const ordersBySeller = sellerIds.length
-    ? await Order.aggregate([
-        { $match: { seller: { $in: sellerIds } } },
+  pipeline.push({
+    $lookup: {
+      from: "orders",
+      let: { sellerId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$seller", "$$sellerId"] } } },
         {
           $group: {
-            _id: "$seller",
+            _id: null,
             totalOrders: { $sum: 1 },
             activeOrders: {
               $sum: {
@@ -127,104 +92,142 @@ export async function getSellerLocationsData({
             lastOrderAt: { $max: "$createdAt" },
           },
         },
-      ])
-    : [];
-
-  const orderMap = new Map(ordersBySeller.map((row) => [String(row._id), row]));
-
-  const rows = filteredByCity.map((seller) => {
-    const orderStats = orderMap.get(String(seller._id)) || {};
-    const activeOrders = Number(orderStats.activeOrders || 0);
-    const totalOrders = Number(orderStats.totalOrders || 0);
-    const deliveredOrders = Number(orderStats.deliveredOrders || 0);
-    const ordersLast24h = Number(orderStats.ordersLast24h || 0);
-    const radiusKm = normalizeRadiusKm(seller.serviceRadiusKm, 5);
-
-    let densityScore = 1;
-    if (activeOrders >= 20) {
-      densityScore = 4;
-    } else if (activeOrders >= 10) {
-      densityScore = 3;
-    } else if (activeOrders >= 5) {
-      densityScore = 2;
-    }
-
-    return {
-      id: seller.id,
-      shopName: seller.shopName || "Unnamed Store",
-      ownerName: seller.name || "Unnamed Owner",
-      email: seller.email || "",
-      phone: seller.phone || "",
-      category: seller.category || "General",
-      city: seller.city,
-      lifecycle: seller.lifecycle,
-      hasValidLocation: seller.hasValidLocation,
-      location: {
-        lat: seller.lat,
-        lng: seller.lng,
-        label: seller.locationLabel,
-      },
-      serviceRadiusKm: radiusKm,
-      serviceRadiusMeters: Math.round(radiusKm * 1000),
-      activeOrders,
-      totalOrders,
-      deliveredOrders,
-      ordersLast24h,
-      densityScore,
-      lastOrderAt: orderStats.lastOrderAt || null,
-      approvedAt: seller.reviewedAt || null,
-      createdAt: seller.createdAt || null,
-    };
+      ],
+      as: "orderStats",
+    },
   });
 
-  const sorters = {
-    recent: (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
-    name_asc: (a, b) => a.shopName.localeCompare(b.shopName),
-    name_desc: (a, b) => b.shopName.localeCompare(a.shopName),
-    radius_desc: (a, b) => b.serviceRadiusKm - a.serviceRadiusKm,
-    radius_asc: (a, b) => a.serviceRadiusKm - b.serviceRadiusKm,
-    orders_desc: (a, b) => b.activeOrders - a.activeOrders,
-    orders_asc: (a, b) => a.activeOrders - b.activeOrders,
-    city_asc: (a, b) => a.city.localeCompare(b.city),
-    city_desc: (a, b) => b.city.localeCompare(a.city),
+  pipeline.push({
+    $addFields: {
+      orderStats: { $arrayElemAt: ["$orderStats", 0] },
+    },
+  });
+
+  // 3. Project and Derive Fields
+  pipeline.push({
+    $project: {
+      id: { $toString: "$_id" },
+      shopName: { $ifNull: ["$shopName", "Unnamed Store"] },
+      ownerName: { $ifNull: ["$name", "Unnamed Owner"] },
+      email: { $ifNull: ["$email", ""] },
+      phone: { $ifNull: ["$phone", ""] },
+      category: { $ifNull: ["$category", "General"] },
+      isActive: 1,
+      isVerified: 1,
+      applicationStatus: 1,
+      reviewedAt: 1,
+      createdAt: 1,
+      location: 1,
+      serviceRadius: 1,
+      activeOrders: { $ifNull: ["$orderStats.activeOrders", 0] },
+      totalOrders: { $ifNull: ["$orderStats.totalOrders", 0] },
+      deliveredOrders: { $ifNull: ["$orderStats.deliveredOrders", 0] },
+      ordersLast24h: { $ifNull: ["$orderStats.ordersLast24h", 0] },
+      lastOrderAt: { $ifNull: ["$orderStats.lastOrderAt", null] },
+    },
+  });
+
+  // 4. Sort and Lifecycle Filtering
+  // Note: matchSellerLifecycleFilter is complex JS logic. 
+  // We should ideally convert it to aggregation, but for now let's apply it carefully.
+  // To keep it simple and scalable, we'll implement the lifecycle filter in aggregation.
+  
+  const lifecycleExpr = {
+    $switch: {
+      branches: [
+        {
+          case: { $eq: ["$applicationStatus", "rejected"] },
+          then: "rejected",
+        },
+        {
+          case: { $and: ["$isVerified", "$isActive"] },
+          then: "active",
+        },
+        {
+          case: { $and: ["$isVerified", { $eq: ["$isActive", false] }] },
+          then: "inactive",
+        },
+        {
+          case: { $and: [{ $eq: ["$isVerified", false] }, { $eq: ["$applicationStatus", "approved"] }] },
+          then: "approved",
+        },
+        {
+          case: { $eq: ["$applicationStatus", "pending"] },
+          then: "pending",
+        },
+      ],
+      default: "unknown",
+    },
   };
-  const sortedRows = [...rows].sort(sorters[normalizedSort] || sorters.orders_desc);
 
-  const total = sortedRows.length;
-  const pagedItems = sortedRows.slice(skip, skip + limit);
-  const mapItems = sortedRows.filter((row) => row.hasValidLocation).slice(0, mapItemLimit);
+  pipeline.push({
+    $addFields: {
+      lifecycle: lifecycleExpr,
+      city: { $ifNull: ["$address", "Location not set"] }, // Simplified for aggregation
+    },
+  });
 
-  const allCities = [
-    ...new Set(
-      sellersWithDerivedFields
-        .map((row) => row.city)
-        .filter(Boolean)
-        .map((value) => String(value).trim()),
-    ),
-  ].sort((a, b) => a.localeCompare(b));
+  if (normalizedLifecycle && normalizedLifecycle !== "all") {
+    pipeline.push({ $match: { lifecycle: normalizedLifecycle } });
+  }
 
-  const allCategories = [
-    ...new Set(
-      sellersWithDerivedFields
-        .map((row) => row.category || "General")
-        .filter(Boolean)
-        .map((value) => String(value).trim()),
-    ),
-  ].sort((a, b) => a.localeCompare(b));
+  if (normalizedCity && normalizedCity !== "all") {
+    pipeline.push({ $match: { city: new RegExp(escapeRegExp(normalizedCity), "i") } });
+  }
 
-  const mapPoints = mapItems.map((item) => ({
-    lat: item.location.lat,
-    lng: item.location.lng,
-  }));
-  const mappedCount = rows.filter((row) => row.hasValidLocation).length;
-  const radiusValues = rows
-    .filter((row) => row.hasValidLocation)
-    .map((row) => row.serviceRadiusKm);
-  const totalActiveOrders = rows.reduce((accumulator, row) => accumulator + row.activeOrders, 0);
-  const totalDeliveredOrders = rows.reduce(
-    (accumulator, row) => accumulator + row.deliveredOrders,
-    0,
-  );
+  // 5. Final Sort and Facet
+  const sortMap = {
+    recent: { createdAt: -1 },
+    name_asc: { shopName: 1 },
+    name_desc: { shopName: -1 },
+    orders_desc: { activeOrders: -1 },
+    orders_asc: { activeOrders: 1 },
+  };
+
+  pipeline.push({
+    $facet: {
+      items: [
+        { $sort: sortMap[normalizedSort] || sortMap.orders_desc },
+        { $skip: skip },
+        { $limit: limit },
+      ],
+      totalCount: [{ $count: "count" }],
+      allCities: [
+        { $group: { _id: "$city" } },
+        { $match: { _id: { $ne: null } } },
+        { $sort: { _id: 1 } },
+      ],
+      allCategories: [
+        { $group: { _id: "$category" } },
+        { $match: { _id: { $ne: null } } },
+        { $sort: { _id: 1 } },
+      ],
+      mapItems: [
+        { $match: { "location.coordinates": { $exists: true, $ne: [0, 0] } } },
+        { $limit: mapItemLimit },
+      ],
+    },
+  });
+
+  const [result] = await Seller.aggregate(pipeline);
+  const rows = result.items || [];
+  const total = result.totalCount[0]?.count || 0;
+  const pagedItems = rows;
+  const mapItems = result.mapItems || [];
+  const allCities = result.allCities.map((c) => c._id);
+  const allCategories = result.allCategories.map((c) => c._id);
+
+  const mapPoints = mapItems.map((item) => {
+    const coords = Array.isArray(item.location?.coordinates) ? item.location.coordinates : [];
+    return {
+      lat: coords[1] || 0,
+      lng: coords[0] || 0,
+    };
+  });
+  const mappedCount = mapItems.length;
+  const radiusValues = mapItems.map((row) => row.serviceRadius || 5);
+  const totalActiveOrders = rows.reduce((acc, row) => acc + row.activeOrders, 0);
+  const totalDeliveredOrders = rows.reduce((acc, row) => acc + row.deliveredOrders, 0);
 
   return {
     items: pagedItems,
@@ -237,7 +240,7 @@ export async function getSellerLocationsData({
       totalSellers: rows.length,
       mappedSellers: mappedCount,
       unmappedSellers: Math.max(0, rows.length - mappedCount),
-      citiesCovered: new Set(rows.map((row) => row.city).filter(Boolean)).size,
+      citiesCovered: allCities.length,
       totalActiveOrders,
       totalDeliveredOrders,
       averageRadiusKm: radiusValues.length

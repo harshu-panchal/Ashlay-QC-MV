@@ -5,7 +5,7 @@ import getPagination from "../../utils/pagination.js";
 
 export const getDeliveryPartners = async (req, res) => {
   try {
-    const { status, verified } = req.query;
+    const { status, verified, applicationStatus } = req.query;
     const query = {};
 
     if (status === "online") {
@@ -18,6 +18,10 @@ export const getDeliveryPartners = async (req, res) => {
       query.isVerified = true;
     } else if (verified === "false") {
       query.isVerified = false;
+    }
+
+    if (applicationStatus) {
+      query.applicationStatus = applicationStatus;
     }
 
     const { page, limit, skip } = getPagination(req, {
@@ -51,7 +55,13 @@ export const approveDeliveryPartner = async (req, res) => {
     const { id } = req.params;
     const rider = await Delivery.findByIdAndUpdate(
       id,
-      { isVerified: true },
+      {
+        isVerified: true,
+        applicationStatus: "approved",
+        isActive: true,
+        reviewedAt: new Date(),
+        reviewedBy: req.user.id,
+      },
       { new: true },
     );
 
@@ -68,7 +78,20 @@ export const approveDeliveryPartner = async (req, res) => {
 export const rejectDeliveryPartner = async (req, res) => {
   try {
     const { id } = req.params;
-    const rider = await Delivery.findByIdAndDelete(id);
+    const { reason } = req.body;
+    
+    const rider = await Delivery.findByIdAndUpdate(
+      id,
+      {
+        isVerified: false,
+        applicationStatus: "rejected",
+        isActive: false,
+        reviewedAt: new Date(),
+        reviewedBy: req.user.id,
+        rejectionReason: reason || "Application rejected by administrator",
+      },
+      { new: true },
+    );
 
     if (!rider) {
       return handleResponse(res, 404, "Rider not found");
@@ -77,7 +100,8 @@ export const rejectDeliveryPartner = async (req, res) => {
     return handleResponse(
       res,
       200,
-      "Rider application rejected and removed",
+      "Rider application rejected successfully",
+      rider
     );
   } catch (error) {
     return handleResponse(res, 500, error.message);

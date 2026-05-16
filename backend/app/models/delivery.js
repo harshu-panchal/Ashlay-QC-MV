@@ -81,6 +81,24 @@ const deliverySchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        applicationStatus: {
+            type: String,
+            enum: ["pending", "approved", "rejected"],
+            default: "pending",
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+        },
+        reviewedAt: Date,
+        reviewedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Admin",
+        },
+        rejectionReason: {
+            type: String,
+            trim: true,
+        },
         location: {
             type: {
                 type: String,

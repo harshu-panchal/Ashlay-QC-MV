@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import DashboardLayout from "@shared/layout/DashboardLayout";
+import AdminDashboardLayout from "@shared/layout/AdminDashboardLayout";
 import { useSupportUnread } from "@core/context/SupportUnreadContext";
 import {
   LayoutDashboard,
@@ -222,7 +222,7 @@ const AdminRoutes = () => {
   }, [totalUnread]);
 
   return (
-    <DashboardLayout navItems={navItemsWithBadges} title="Admin Center">
+    <AdminDashboardLayout navItems={navItemsWithBadges} title="Admin Center">
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/users" element={<UserManagement />} />
@@ -272,7 +272,7 @@ const AdminRoutes = () => {
         <Route path="/env" element={<EnvSettings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </DashboardLayout>
+    </AdminDashboardLayout>
   );
 };
 

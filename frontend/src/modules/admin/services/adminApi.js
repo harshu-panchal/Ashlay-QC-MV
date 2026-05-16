@@ -42,8 +42,8 @@ export const adminApi = {
     getParentUnits: () => axiosInstance.get('/admin/categories?flat=true'),
 
     // Product Management
-    getProducts: (params) => axiosInstance.get('/products', { params }),
-    getProductModerationList: (params) => axiosInstance.get('/products/moderation', { params }),
+    getProducts: (params, config = {}) => axiosInstance.get('/products', { params, ...config }),
+    getProductModerationList: (params, config = {}) => axiosInstance.get('/products/moderation', { params, ...config }),
     approveProductModeration: (id, data = {}) => axiosInstance.patch(`/products/moderation/${id}/approve`, data),
     rejectProductModeration: (id, data = {}) => axiosInstance.patch(`/products/moderation/${id}/reject`, data),
     createProduct: (formData) => axiosInstance.post('/products', formData),

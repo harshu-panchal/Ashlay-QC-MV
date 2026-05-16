@@ -4,10 +4,12 @@
 import { verifySocketToken } from "./socketAuth.js";
 import mongoose from "mongoose";
 import Ticket from "../models/ticket.js";
+import Order from "../models/order.js";
 
 let _io = null;
 
 const deliverySockets = new Map();
+const userSockets = new Map(); // Map<userId, Set<socketId>>
 
 export const initSocket = (io) => {
   _io = io;
@@ -35,38 +37,66 @@ export const initSocket = (io) => {
       return;
     }
 
+    const uIdStr = userId.toString();
+
+    // Track user sockets
+    if (!userSockets.has(uIdStr)) {
+      userSockets.set(uIdStr, new Set());
+    }
+    userSockets.get(uIdStr).add(socket.id);
+
     if (role === "delivery") {
-      const dId = userId.toString();
-      deliverySockets.set(dId, socket.id);
+      deliverySockets.set(uIdStr, socket.id);
       socket.join("delivery:online");
-      socket.join(`delivery:${dId}`);
+      socket.join(`delivery:${uIdStr}`);
     }
     if (role === "seller") {
-      socket.join(`seller:${userId}`);
+      socket.join(`seller:${uIdStr}`);
     }
     if (role === "customer" || role === "user") {
-      socket.join(`customer:${userId}`);
+      socket.join(`customer:${uIdStr}`);
     }
     if (role === "admin") {
       socket.join("admin:orders");
       socket.join("admin:support");
     }
 
-    socket.on("join_order", (orderId) => {
-      if (!orderId || typeof orderId !== "string") return;
-      socket.join(`order:${orderId}`);
+    socket.on("join_order", async (orderId) => {
+      const raw = typeof orderId === "string" ? orderId.trim() : "";
+      if (!raw || !mongoose.Types.ObjectId.isValid(raw)) return;
+
+      if (role === "admin") {
+        socket.join(`order:${raw}`);
+        return;
+      }
+
+      try {
+        const order = await Order.findById(raw).select("customerId sellerId deliveryBoyId").lean();
+        if (!order) return;
+
+        const isAuthorized = 
+          (role === "customer" && order.customerId?.toString() === uIdStr) ||
+          (role === "seller" && order.sellerId?.toString() === uIdStr) ||
+          (role === "delivery" && order.deliveryBoyId?.toString() === uIdStr);
+
+        if (isAuthorized) {
+          socket.join(`order:${raw}`);
+        }
+      } catch {
+        /* ignore */
+      }
     });
 
     socket.on("leave_order", (orderId) => {
       if (!orderId) return;
-      socket.leave(`order:${orderId}`);
+      socket.leave(`order:${String(orderId).trim()}`);
     });
 
     socket.on("join_ticket", async (ticketId) => {
       const raw = typeof ticketId === "string" ? ticketId.trim() : "";
       if (!raw || !mongoose.Types.ObjectId.isValid(raw)) return;
 
-      if (socket.user?.role === "admin") {
+      if (role === "admin") {
         socket.join(`ticket:${raw}`);
         return;
       }
@@ -74,7 +104,7 @@ export const initSocket = (io) => {
       try {
         const ticket = await Ticket.findById(raw).select("userId").lean();
         if (!ticket?.userId) return;
-        if (ticket.userId.toString() !== userId.toString()) return;
+        if (ticket.userId.toString() !== uIdStr) return;
         socket.join(`ticket:${raw}`);
       } catch {
         /* ignore */
@@ -87,17 +117,24 @@ export const initSocket = (io) => {
     });
 
     socket.on("register_delivery", (deliveryId) => {
-      if (deliveryId && socket.user?.role === "delivery") {
-        deliverySockets.set(deliveryId.toString(), socket.id);
+      if (deliveryId && role === "delivery" && deliveryId.toString() === uIdStr) {
+        deliverySockets.set(uIdStr, socket.id);
       }
     });
 
     socket.on("disconnect", () => {
-      for (const [id, sid] of deliverySockets.entries()) {
-        if (sid === socket.id) {
-          deliverySockets.delete(id);
-          break;
+      // Clean up user sockets
+      const userSids = userSockets.get(uIdStr);
+      if (userSids) {
+        userSids.delete(socket.id);
+        if (userSids.size === 0) {
+          userSockets.delete(uIdStr);
         }
+      }
+
+      // Clean up delivery sockets
+      if (role === "delivery" && deliverySockets.get(uIdStr) === socket.id) {
+        deliverySockets.delete(uIdStr);
       }
     });
   });

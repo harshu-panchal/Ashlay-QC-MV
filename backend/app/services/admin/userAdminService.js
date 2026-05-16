@@ -8,9 +8,24 @@ export async function getUsersData({ page, limit, skip }) {
     {
       $lookup: {
         from: "orders",
-        localField: "_id",
-        foreignField: "customer",
-        as: "userOrders",
+        let: { customerId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$customer", "$$customerId"] } } },
+          {
+            $group: {
+              _id: null,
+              totalOrders: { $sum: 1 },
+              totalSpent: { $sum: "$pricing.total" },
+              lastOrderDate: { $max: "$createdAt" },
+            },
+          },
+        ],
+        as: "orderStats",
+      },
+    },
+    {
+      $addFields: {
+        orderStats: { $arrayElemAt: ["$orderStats", 0] },
       },
     },
     {
@@ -23,9 +38,9 @@ export async function getUsersData({ page, limit, skip }) {
         status: {
           $cond: [{ $eq: ["$isActive", false] }, "inactive", "active"],
         },
-        totalOrders: { $size: "$userOrders" },
-        totalSpent: { $sum: "$userOrders.pricing.total" },
-        lastOrderDate: { $max: "$userOrders.createdAt" },
+        totalOrders: { $ifNull: ["$orderStats.totalOrders", 0] },
+        totalSpent: { $ifNull: ["$orderStats.totalSpent", 0] },
+        lastOrderDate: { $ifNull: ["$orderStats.lastOrderDate", null] },
         avatar: {
           $concat: [
             "https://api.dicebear.com/7.x/avataaars/svg?seed=",

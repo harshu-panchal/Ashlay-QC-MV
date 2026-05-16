@@ -109,6 +109,15 @@ const EnvSettings = () => {
     return (
         <div className="ds-section-spacing animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
             {/* Header Section */}
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div>
+                    <h4 className="text-sm font-bold text-amber-900">Mock UI Warning</h4>
+                    <p className="text-xs text-amber-700 mt-1">
+                        This is a read-only demonstration interface. Environment variables displayed here are mocked and clicking "Save & Deploy" will not persist any changes to the server environment. For security, environment variables must be managed securely on the server via CI/CD or proper secret managers.
+                    </p>
+                </div>
+            </div>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-1">
                 <div>
                     <h1 className="ds-h1 flex items-center gap-3">
@@ -118,10 +127,9 @@ const EnvSettings = () => {
                         </div>
                     </h1>
                     <p className="ds-description mt-1 text-slate-500">
-                        Manage critical application secrets and configurations.
-                        <span className="text-red-500 font-bold ml-1 flex items-center gap-1 inline-flex">
-                            <AlertTriangle className="h-3 w-3" />
-                            Handle with care.
+                        View configuration structure (Mock Interface).
+                        <span className="text-amber-600 font-bold ml-1 flex items-center gap-1 inline-flex">
+                            Read Only.
                         </span>
                     </p>
                 </div>
@@ -139,7 +147,7 @@ const EnvSettings = () => {
                         ) : (
                             <Save className="h-4 w-4" />
                         )}
-                        {isSaving ? 'Deploying...' : 'Save & Deploy'}
+                        {isSaving ? 'Simulating...' : 'Test Save (Mock)'}
                     </button>
                 </div>
             </div>

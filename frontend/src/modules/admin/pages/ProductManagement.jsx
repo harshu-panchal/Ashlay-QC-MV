@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import { adminApi } from '../services/adminApi';
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ProductManagement = () => {
+    const fetchController = useRef(null);
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]); // All categories for dropdowns
     const [page, setPage] = useState(1);
@@ -98,6 +99,11 @@ const ProductManagement = () => {
     };
 
     const fetchProducts = async (requestedPage = 1) => {
+        if (fetchController.current) {
+            fetchController.current.abort();
+        }
+        fetchController.current = new AbortController();
+
         setIsLoading(true);
         try {
             const params = { page: requestedPage, limit: pageSize };
@@ -107,7 +113,10 @@ const ProductManagement = () => {
             if (filterApprovalStatus !== 'all') params.approvalStatus = filterApprovalStatus;
             if (sortBy) params.sort = sortBy;
 
-            const response = await adminApi.getProductModerationList(params);
+            const response = await adminApi.getProductModerationList(params, {
+                signal: fetchController.current.signal
+            });
+            
             if (response.data.success) {
                 const payload = response.data.result || {};
                 const list = Array.isArray(payload.items) ? payload.items : (response.data.results || []);
@@ -121,15 +130,22 @@ const ProductManagement = () => {
                     rejected: Number(payload?.counts?.rejected || 0),
                 });
             }
+            setIsLoading(false);
         } catch (error) {
+            if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') {
+                return; // Ignore cancelled requests
+            }
             toast.error('Failed to fetch products');
-        } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
         fetchCategories();
+        
+        return () => {
+            if (fetchController.current) fetchController.current.abort();
+        };
     }, []);
 
     useEffect(() => {

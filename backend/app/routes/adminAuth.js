@@ -53,6 +53,13 @@ import {
     createContentLengthGuard,
 } from "../middleware/securityMiddlewares.js";
 
+import { validateRequest } from "../middleware/validateRequest.js";
+import {
+    rejectDeliveryPartnerSchema,
+    rejectSellerSchema,
+    updateWithdrawalStatusSchema,
+} from "../validation/adminValidation.js";
+
 const router = express.Router();
 
 const smallAdminPayload = createContentLengthGuard(
@@ -152,7 +159,7 @@ router.get("/sellers/locations", verifyToken, allowRoles("admin"), getSellerLoca
 router.get("/sellers/active", verifyToken, allowRoles("admin"), getActiveSellers);
 router.get("/sellers/pending", verifyToken, allowRoles("admin"), getPendingSellers);
 router.patch("/sellers/approve/:id", verifyToken, allowRoles("admin"), approveSellerApplication);
-router.delete("/sellers/reject/:id", verifyToken, allowRoles("admin"), rejectSellerApplication);
+router.delete("/sellers/reject/:id", verifyToken, allowRoles("admin"), validateRequest(rejectSellerSchema, "body"), rejectSellerApplication);
 
 router.get(
     "/delivery-partners",
@@ -172,6 +179,7 @@ router.delete(
     "/delivery-partners/reject/:id",
     verifyToken,
     allowRoles("admin"),
+    validateRequest(rejectDeliveryPartnerSchema, "body"),
     rejectDeliveryPartner
 );
 
@@ -193,7 +201,7 @@ router.get("/cash-history", verifyToken, allowRoles("admin"), getCashSettlementH
 router.get("/seller-withdrawals", verifyToken, allowRoles("admin"), getSellerWithdrawals);
 router.get("/delivery-withdrawals", verifyToken, allowRoles("admin"), getDeliveryWithdrawals);
 router.get("/seller-transactions", verifyToken, allowRoles("admin"), getSellerTransactions);
-router.put("/withdrawals/:id", verifyToken, allowRoles("admin"), updateWithdrawalStatus);
+router.put("/withdrawals/:id", verifyToken, allowRoles("admin"), validateRequest(updateWithdrawalStatusSchema, "body"), updateWithdrawalStatus);
 
 // Protected admin route example
 router.get(

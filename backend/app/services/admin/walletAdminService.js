@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Transaction from "../../models/transaction.js";
 import Notification from "../../models/notification.js";
 import { getAdminFinanceSummary } from "../finance/walletService.js";
@@ -179,8 +180,42 @@ export async function settleDeliveryTransactionById(id) {
 }
 
 export async function bulkSettleDeliveryTransactions() {
-  return Transaction.updateMany(
-    { userModel: "Delivery", status: "Pending" },
-    { status: "Settled" },
-  );
+  const pendingTransactions = await Transaction.find({
+    userModel: "Delivery",
+    status: "Pending",
+  }).lean();
+
+  if (pendingTransactions.length === 0) return { count: 0 };
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const ids = pendingTransactions.map((t) => t._id);
+
+    await Transaction.updateMany(
+      { _id: { $in: ids } },
+      { $set: { status: "Settled" } },
+      { session },
+    );
+
+    const notifications = pendingTransactions.map((t) => ({
+      recipient: t.user,
+      recipientModel: "Delivery",
+      title: "Payment Settled",
+      message: `Your payment of \u20B9${Math.abs(t.amount)} has been settled.`,
+      type: "payment",
+      data: { transactionId: t._id },
+    }));
+
+    await Notification.insertMany(notifications, { session });
+
+    await session.commitTransaction();
+    return { count: ids.length };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 }
