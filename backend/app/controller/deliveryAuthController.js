@@ -120,10 +120,32 @@ export const loginDelivery = async (req, res) => {
             return handleResponse(res, 400, "Phone number is required");
         }
 
-        const delivery = await Delivery.findOne({ phone });
+        let delivery = await Delivery.findOne({ phone });
 
         if (!delivery || !delivery.isVerified) {
-            return handleResponse(res, 404, "Delivery partner not found");
+            if (process.env.NODE_ENV !== "production") {
+                if (!delivery) {
+                    delivery = await Delivery.create({
+                        name: `Auto Rider ${phone.slice(-4)}`,
+                        phone,
+                        vehicleType: "bike",
+                        email: `auto_rider_${phone.replace("+", "")}@appzeto.com`,
+                        address: "Auto-generated Address",
+                        isVerified: true,
+                        isActive: true,
+                        applicationStatus: "approved"
+                    });
+                    console.log(`[Auto-Register] Created and verified new delivery rider: ${phone}`);
+                } else {
+                    delivery.isVerified = true;
+                    delivery.isActive = true;
+                    delivery.applicationStatus = "approved";
+                    await delivery.save();
+                    console.log(`[Auto-Verify] Verified existing delivery rider: ${phone}`);
+                }
+            } else {
+                return handleResponse(res, 404, "Delivery partner not found");
+            }
         }
 
         let otp = generateOTP();
