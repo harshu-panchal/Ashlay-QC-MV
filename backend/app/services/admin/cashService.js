@@ -4,6 +4,7 @@ import Transaction from "../../models/transaction.js";
 import Notification from "../../models/notification.js";
 
 export async function getDeliveryCashBalancesData({ page, limit, skip }) {
+  const ridersPipeline = [
     {
       $lookup: {
         from: "transactions",
