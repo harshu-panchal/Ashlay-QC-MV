@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { exportToCSV } from "@/lib/exportUtils";
 import { useSellerEarnings } from "../context/SellerEarningsContext";
+import { sellerApi } from "../services/sellerApi";
 
 const Earnings = () => {
   const navigate = useNavigate();
@@ -37,33 +38,54 @@ const Earnings = () => {
   const [withdrawAmount, setWithdrawAmount] = React.useState("");
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = React.useState(false);
   const [isWithdrawing, setIsWithdrawing] = React.useState(false);
+  const [profileData, setProfileData] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await sellerApi.getProfile();
+        if (response.data.success) {
+          setProfileData(response.data.result);
+        }
+      } catch (err) {
+        console.error("Failed to fetch seller profile:", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const availableBalance = Number(data?.balances?.availableBalance ?? 0);
 
   React.useEffect(() => {
     if (data?.balances != null && withdrawAmount === "") {
-      const settled = Number(data.balances?.settledBalance ?? 0);
-      setWithdrawAmount(settled > 0 ? String(settled) : "");
+      setWithdrawAmount(availableBalance > 0 ? String(availableBalance) : "");
     }
-  }, [data?.balances]);
+  }, [data?.balances, availableBalance]);
 
-  const handleWithdraw = () => {
-    const totalBalance = Number(data?.balances?.settledBalance ?? 0);
+  const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount <= 0 || amount > totalBalance) {
-      alert(
-        "Please enter a valid amount between ₹0.01 and ₹" +
-        totalBalance.toLocaleString(),
+    if (isNaN(amount) || amount <= 0 || amount > availableBalance) {
+      toast.error(
+        "Please enter a valid amount between INR 0.01 and INR " +
+        availableBalance.toLocaleString(),
       );
       return;
     }
 
-    setIsWithdrawing(true);
-    setTimeout(() => {
+    try {
+      setIsWithdrawing(true);
+      const response = await sellerApi.requestWithdrawal({ amount });
+      if (response.data.success) {
+        toast.success(`Withdrawal request of INR ${amount.toLocaleString()} submitted successfully!`);
+        setIsWithdrawModalOpen(false);
+        setWithdrawAmount("");
+        refreshEarnings();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit withdrawal request");
+    } finally {
       setIsWithdrawing(false);
-      setIsWithdrawModalOpen(false);
-      alert(
-        `Withdrawal request of ₹${amount.toLocaleString()} submitted successfully!`,
-      );
-    }, 1500);
+    }
   };
 
   const exportReport = () => {
@@ -127,7 +149,7 @@ const Earnings = () => {
           <Card className="bg-gradient-to-br from-brand-600 to-teal-700 text-white border-none shadow-lg h-full">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-brand-100 font-medium">Total Revenue</p>
+                <p className="text-brand-100 font-medium">Net Earnings</p>
                 <h3 className="text-4xl font-bold mt-2">₹{Number(data?.balances?.totalRevenue ?? 0).toLocaleString()}</h3>
               </div>
               <div className="p-3 bg-white/20 rounded-xl">
@@ -166,7 +188,7 @@ const Earnings = () => {
                     Available to Withdraw
                   </p>
                   <p className="text-xs font-black text-slate-900">
-                    ₹{Number(data?.balances?.settledBalance ?? 0).toLocaleString()}
+                    ₹{availableBalance.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -256,7 +278,7 @@ const Earnings = () => {
               <p className="text-sm text-slate-600 font-medium mb-8">
                 Available Balance:{" "}
                 <span className="text-brand-600 font-bold">
-                  ₹{Number(data?.balances?.settledBalance ?? 0).toLocaleString()}
+                  ₹{availableBalance.toLocaleString()}
                 </span>
               </p>
 
@@ -289,7 +311,7 @@ const Earnings = () => {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-black text-slate-900">
-                        HDFC Bank **** 4589
+                        {profileData?.bankDetails?.bankName || "HDFC Bank"} **** {profileData?.bankDetails?.accountNumber ? profileData.bankDetails.accountNumber.slice(-4) : "4589"}
                       </p>
                       <p className="text-xs text-slate-600 font-bold">
                         Primary Account
@@ -303,16 +325,15 @@ const Earnings = () => {
               <div className="grid grid-cols-2 gap-3 mt-8">
                 <button
                   onClick={() => setIsWithdrawModalOpen(false)}
-                  className="py-3 rounded-lg font-black text-slate-600 hover:bg-slate-50 transition-colors">
+                  disabled={isWithdrawing}
+                  className="py-3 rounded-lg font-black text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
                   CANCEL
                 </button>
                 <button
-                  onClick={() => {
-                    setIsWithdrawModalOpen(false);
-                    alert("Withdrawal request submitted!");
-                  }}
-                  className="py-3 rounded-lg bg-black  text-primary-foreground font-black shadow-lg shadow-brand-200 hover:bg-brand-700 hover:shadow-brand-300 transition-all">
-                  CONFIRM
+                  onClick={handleWithdraw}
+                  disabled={isWithdrawing}
+                  className="py-3 rounded-lg bg-black text-primary-foreground font-black shadow-lg shadow-brand-200 hover:bg-brand-700 hover:shadow-brand-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isWithdrawing ? <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'CONFIRM'}
                 </button>
               </div>
             </motion.div>

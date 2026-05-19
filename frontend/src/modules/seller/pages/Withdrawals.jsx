@@ -33,6 +33,21 @@ const Withdrawals = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [profileData, setProfileData] = React.useState(null);
+
+    React.useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await sellerApi.getProfile();
+                if (response.data.success) {
+                    setProfileData(response.data.result);
+                }
+            } catch (err) {
+                console.error("Failed to fetch seller profile in Withdrawals:", err);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     const ledger = Array.isArray(data?.ledger) ? data.ledger : [];
     const withdrawalHistory = ledger.filter((t) => (t.type || '').toString() === 'Withdrawal');
@@ -315,8 +330,8 @@ const Withdrawals = () => {
                                     <Building2 className="h-5 w-5 text-brand-400" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-xs font-black text-slate-900 uppercase">HDFC Bank Limited</p>
-                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Acct Ending in **** 4589</p>
+                                    <p className="text-xs font-black text-slate-900 uppercase">{profileData?.bankDetails?.bankName || "HDFC Bank Limited"}</p>
+                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Acct Ending in **** {profileData?.bankDetails?.accountNumber ? profileData.bankDetails.accountNumber.slice(-4) : "4589"}</p>
                                 </div>
                                 <ArrowRight className="h-4 w-4 text-slate-300" />
                             </div>

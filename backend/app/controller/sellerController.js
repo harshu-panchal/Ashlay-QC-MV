@@ -118,7 +118,7 @@ export const requestWithdrawal = async (req, res) => {
       const availableBalance = wallet ? wallet.availableBalance : 0;
 
       if (amount > availableBalance) {
-        throw new Error(`Insufficient balance. Available: ₹${availableBalance}`);
+        throw new Error(`Insufficient balance. Available: \u20B9${availableBalance}`);
       }
 
       // Deduct from available, maybe add to pendingPayouts? 

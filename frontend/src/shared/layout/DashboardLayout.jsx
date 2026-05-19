@@ -439,7 +439,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                                 <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span>
+                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">₹{newOrderAlert.paymentBreakdown?.sellerPayoutTotal ?? newOrderAlert.pricing?.total ?? newOrderAlert.total}</span>
                                 </p>
 
                                 {/* Timer Bar — width from real server deadline */}

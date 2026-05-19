@@ -271,9 +271,9 @@ export const getSellerStats = async (req, res) => {
 
         return handleResponse(res, 200, "Stats fetched successfully", {
             overview: {
-                totalSales: `₹${totalSales.toLocaleString()}`,
+                totalSales: `\u20B9${totalSales.toLocaleString()}`,
                 totalOrders: totalOrders.toLocaleString(),
-                avgOrderValue: `₹${Math.round(avgOrderValue).toLocaleString()}`,
+                avgOrderValue: `\u20B9${Math.round(avgOrderValue).toLocaleString()}`,
                 conversionRate: totalOrders > 0 ? "4.2%" : "0%",
                 salesTrend: `${salesTrendPerc > 0 ? '+' : ''}${salesTrendPerc}%`,
                 ordersTrend: `${ordersTrendPerc > 0 ? '+' : ''}${ordersTrendPerc}%`
