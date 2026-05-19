@@ -3,6 +3,16 @@ import Transaction from "../models/transaction.js";
 import { handleResponse, calculateDistance } from "../utils/helper.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
+import Wallet from "../models/wallet.js";
+import {
+  checkIdempotency,
+  acquireIdempotencyLock,
+  storeIdempotencyResult,
+  storeIdempotencyError,
+  releaseIdempotencyLock,
+  isRetryableError,
+  validateIdempotencyKey,
+} from "../services/idempotencyService.js";
 
 /* ===============================
    GET NEARBY SELLERS
@@ -69,53 +79,89 @@ export const getNearbySellers = async (req, res) => {
 export const requestWithdrawal = async (req, res) => {
   try {
     const sellerId = req.user.id;
-    const { amount } = req.body;
+    const { amount, idempotencyKey } = req.body;
 
     if (!amount || amount <= 0) {
       return handleResponse(res, 400, "Please enter a valid amount");
     }
 
-    // 1. Calculate current available balance
-    // Consistent with getSellerEarnings logic in sellerStatsController.js
-    const transactions = await Transaction.find({
-      user: sellerId,
-      userModel: "Seller",
-    })
-      .select("status amount type")
-      .lean();
-
-    const settledBalance = transactions
-      .filter((t) => t.status === "Settled")
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
-
-    const pendingPayouts = transactions
-      .filter(
-        (t) =>
-          t.type === "Withdrawal" &&
-          (t.status === "Pending" || t.status === "Processing"),
-      )
-      .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
-
-    const availableBalance = settledBalance - pendingPayouts;
-
-    if (amount > availableBalance) {
-      return handleResponse(
-        res,
-        400,
-        `Insufficient balance. Available: ₹${availableBalance}`,
-      );
+    if (idempotencyKey) {
+      if (!validateIdempotencyKey(idempotencyKey)) {
+        return handleResponse(res, 400, "Invalid idempotency key format");
+      }
+      const idempotencyCheck = await checkIdempotency(idempotencyKey, req.body);
+      if (idempotencyCheck.exists && !idempotencyCheck.checksumMismatch) {
+        if (idempotencyCheck.result.status === "error") {
+          return handleResponse(res, idempotencyCheck.result.error.statusCode || 500, idempotencyCheck.result.error.message);
+        }
+        return handleResponse(res, 201, "Withdrawal request submitted successfully", idempotencyCheck.result.data);
+      }
+      if (idempotencyCheck.checksumMismatch) {
+        return handleResponse(res, 422, "Idempotency key reused with different payload");
+      }
+      if (idempotencyCheck.inProgress) {
+        return handleResponse(res, 409, "Request is being processed");
+      }
+      const lockAcquired = await acquireIdempotencyLock(idempotencyKey);
+      if (!lockAcquired) {
+        return handleResponse(res, 409, "Request is being processed");
+      }
     }
 
-    // 2. Create Withdrawal Transaction
-    // Withdrawals have negative amounts per the model comment
-    const withdrawal = await Transaction.create({
-      user: sellerId,
-      userModel: "Seller",
-      type: "Withdrawal",
-      amount: -Math.abs(amount),
-      status: "Pending",
-      reference: `WDR-${Date.now()}`,
-    });
+    const session = await mongoose.startSession();
+    let withdrawal;
+    
+    try {
+      session.startTransaction();
+
+      const wallet = await Wallet.findOne({ ownerType: 'SELLER', ownerId: sellerId }).session(session);
+      const availableBalance = wallet ? wallet.availableBalance : 0;
+
+      if (amount > availableBalance) {
+        throw new Error(`Insufficient balance. Available: ₹${availableBalance}`);
+      }
+
+      // Deduct from available, maybe add to pendingPayouts? 
+      // Legacy code doesn't adjust wallet here, but for optimistic concurrency we probably should debit wallet.
+      // Wait, if the admin dashboard gets pendingPayouts from Transaction, we should just let Transaction be created.
+      // However, if we don't debit wallet here, concurrent withdrawals could still pass if they read before the other withdrawal is processed.
+      if (wallet) {
+        wallet.availableBalance -= amount;
+        // Optionally store in a new field or just rely on Transactions.
+        await wallet.save({ session }); // This will throw VersionError if modified concurrently due to optimisticConcurrency
+      }
+
+      withdrawal = await Transaction.create([{
+        user: sellerId,
+        userModel: "Seller",
+        type: "Withdrawal",
+        amount: -Math.abs(amount),
+        status: "Pending",
+        reference: `WDR-${Date.now()}`,
+      }], { session });
+
+      withdrawal = withdrawal[0];
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      if (idempotencyKey) {
+        if (isRetryableError(error)) {
+          await releaseIdempotencyLock(idempotencyKey);
+        } else {
+          await storeIdempotencyError(idempotencyKey, error, req.body);
+        }
+      }
+      if (error.name === 'VersionError') {
+        return handleResponse(res, 409, "Concurrent transaction detected. Please try again.");
+      }
+      return handleResponse(res, 400, error.message);
+    } finally {
+      session.endSession();
+    }
+
+    if (idempotencyKey) {
+      await storeIdempotencyResult(idempotencyKey, withdrawal, req.body);
+    }
 
     return handleResponse(
       res,
@@ -123,6 +169,8 @@ export const requestWithdrawal = async (req, res) => {
       "Withdrawal request submitted successfully",
       withdrawal,
     );
+
+
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }

@@ -55,7 +55,7 @@ const walletSchema = new mongoose.Schema(
       default: {},
     },
   },
-  { timestamps: true },
+  { timestamps: true, optimisticConcurrency: true },
 );
 
 walletSchema.index(
