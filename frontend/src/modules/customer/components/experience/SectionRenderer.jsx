@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import ProductCard from "../shared/ProductCard";
+import { LowestPriceCard } from "../home/LowestPriceSection";
 import { cn } from "@/lib/utils";
 import ExperienceBannerCarousel from "./ExperienceBannerCarousel";
 
@@ -102,7 +102,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
             >
               {heading && (
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-black text-[#1A1A1A]">
+                  <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
                     {heading}
                   </h3>
                   <span className="text-[11px] font-semibold text-slate-400">
@@ -177,7 +177,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
             >
               {heading && (
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-black text-[#1A1A1A]">
+                  <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
                     {heading}
                   </h3>
                   <span className="text-[11px] font-semibold text-slate-400">
@@ -284,14 +284,14 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
             const hasMore = items.length < allProducts.length;
 
             return (
-            <div
-              key={section._id || sectionKey}
-              id={`section-${section._id}`}
-              className="-mx-4 md:-mx-8 lg:-mx-[50px] px-1 sm:px-2 md:px-3 mt-6 mb-2"
-            >
-                <div className="flex items-center justify-between mb-3 px-3 md:px-5">
+              <div
+                key={section._id || sectionKey}
+                id={`section-${section._id}`}
+                className="mt-6 mb-2 overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-3 px-4 md:px-6 lg:px-8">
                   {heading && (
-                    <h3 className="text-base font-black text-[#1A1A1A]">
+                    <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
                       {heading}
                     </h3>
                   )}
@@ -300,7 +300,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   </span>
                 </div>
                 <div
-                  className="relative z-10 flex overflow-x-auto gap-1.5 pb-1.5 no-scrollbar"
+                  className="relative z-10 flex overflow-x-auto gap-2 pb-1.5 no-scrollbar px-4 md:px-6 lg:px-8"
                   onScroll={(e) => {
                     if (!hasMore) return;
                     const node = e.currentTarget;
@@ -314,9 +314,9 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   {items.map((product) => (
                     <div
                       key={product._id || product.id}
-                      className="w-[138px] sm:w-[150px] md:w-[168px] shrink-0"
+                      className="w-[148px] shrink-0"
                     >
-                      <ProductCard product={product} compact={true} neutralBg={true} />
+                      <LowestPriceCard product={product} />
                     </div>
                   ))}
                 </div>
@@ -342,11 +342,11 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
             <div
               key={section._id || sectionKey}
               id={`section-${section._id}`}
-              className="-mx-4 md:-mx-8 lg:-mx-[50px] px-1 sm:px-2 md:px-3 mt-6"
+              className="px-4 md:px-6 lg:px-8 mt-6"
             >
-              <div className="flex items-center justify-between mb-3 px-3 md:px-5">
+              <div className="flex items-center justify-between mb-3 px-0">
                 {heading && (
-                  <h3 className="text-base font-black text-[#1A1A1A]">
+                  <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
                     {heading}
                   </h3>
                 )}
@@ -360,15 +360,15 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   columns === 1
                     ? "grid-cols-1"
                     : columns === 2
-                    ? "grid-cols-2"
-                    : columns === 3
-                    ? "grid-cols-3"
-                    : "grid-cols-2"
+                      ? "grid-cols-2"
+                      : columns === 3
+                        ? "grid-cols-3"
+                        : "grid-cols-2"
                 )}
               >
                 {items.map((product) => (
                   <div key={product._id || product.id}>
-                    <ProductCard product={product} compact={columns >= 2} neutralBg={true} />
+                    <LowestPriceCard product={product} />
                   </div>
                 ))}
               </div>

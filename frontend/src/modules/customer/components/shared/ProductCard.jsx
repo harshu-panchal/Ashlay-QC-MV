@@ -163,7 +163,7 @@ const ProductCard = React.memo(
             ? "bg-white border-[1.5px] border-brand-50 shadow-[0_8px_20px_-8px_rgba(0,0,0,0.08)]"
             : neutralBg
               ? "bg-white border border-slate-100 shadow-[0_8px_20px_-8px_rgba(0,0,0,0.08)]"
-              : "bg-primary/10 border border-primary/20",
+              : "bg-[#061939]/10 border border-[#061939]/20",
           className,
         )}
         onClick={handleProductClick}>
@@ -175,7 +175,7 @@ const ProductCard = React.memo(
             product.originalPrice > product.price) && (
               <div
                 className={cn(
-                  "absolute z-10 bg-primary text-primary-foreground font-[900] rounded-md shadow-sm uppercase tracking-wider flex items-center justify-center",
+                  "absolute z-10 bg-[#061939] text-white font-[900] rounded-md shadow-sm uppercase tracking-wider flex items-center justify-center",
                   compact
                     ? "top-2 left-2 px-1.5 py-0.5 text-[7px]"
                     : "top-2 left-2 px-1 py-0.5 text-[7px] sm:top-3 sm:left-3 sm:px-2 sm:py-1 sm:text-[9px]",
@@ -247,12 +247,12 @@ const ProductCard = React.memo(
           <div className="flex items-center gap-1 mb-0.5 sm:gap-1.5 sm:mb-1">
             <div
               className={cn(
-                "border-2 border-primary rounded-full flex items-center justify-center",
+                "border-2 border-[#061939] rounded-full flex items-center justify-center",
                 compact ? "h-2.5 w-2.5" : "h-2.5 w-2.5 sm:h-3.5 sm:w-3.5",
               )}>
               <div
                 className={cn(
-                  "bg-primary rounded-full",
+                  "bg-[#061939] rounded-full",
                   compact ? "h-0.5 w-0.5" : "h-1 w-1",
                 )}
               />
@@ -278,7 +278,7 @@ const ProductCard = React.memo(
 
           {/* Delivery Time & Unit info */}
           <div className="flex items-center gap-1 text-gray-500 mt-0.5 mb-1 sm:gap-1.5 sm:mt-1 sm:mb-2">
-            <Clock size={compact ? 9 : 10} className="text-primary/80" />
+            <Clock size={compact ? 9 : 10} className="text-[#061939]/80" />
             <span
               className={cn(
                 "font-semibold",
@@ -314,24 +314,24 @@ const ProductCard = React.memo(
               {quantity > 0 ? (
                 <div
                   className={cn(
-                    "flex items-center bg-white border-[1.5px] border-primary rounded-lg p-0.5 justify-between",
+                    "flex items-center bg-white border-[1.5px] border-[#061939] rounded-lg p-0.5 justify-between",
                     compact ? "min-w-[60px]" : "min-w-[68px] sm:min-w-[90px] md:min-w-[100px]",
                   )}>
                   <button
                     onClick={handleDecrement}
-                    className="p-0.5 px-0.5 text-primary active:scale-90 transition-transform sm:p-1 sm:px-1">
+                    className="p-0.5 px-0.5 text-[#061939] active:scale-90 transition-transform sm:p-1 sm:px-1">
                     <Minus size={compact ? 10 : 12} strokeWidth={3.5} />
                   </button>
                   <span
                     className={cn(
-                      "font-black text-primary",
+                      "font-black text-[#061939]",
                       compact ? "text-[10px]" : "text-[11px] sm:text-[13px] md:text-sm",
                     )}>
                     {quantity}
                   </span>
                   <button
                     onClick={handleIncrement}
-                    className="p-0.5 px-0.5 text-primary active:scale-90 transition-transform sm:p-1 sm:px-1">
+                    className="p-0.5 px-0.5 text-[#061939] active:scale-90 transition-transform sm:p-1 sm:px-1">
                     <Plus size={compact ? 10 : 12} strokeWidth={3.5} />
                   </button>
                 </div>
@@ -339,7 +339,7 @@ const ProductCard = React.memo(
                 <button
                   onClick={handleAddToCart}
                   className={cn(
-                    "bg-white border-[1.5px] border-primary text-primary rounded-lg font-black shadow-sm hover:bg-primary/5 mb-0 transition-all uppercase tracking-wide leading-none active:scale-95",
+                    "bg-white border-[1.5px] border-[#061939] text-[#061939] rounded-lg font-black shadow-sm hover:bg-[#061939]/5 mb-0 transition-all uppercase tracking-wide leading-none active:scale-95",
                     compact
                       ? "px-2.5 py-1 text-[10px]"
                       : "px-3.5 py-1.5 text-[11px] sm:px-7 sm:py-2 sm:text-[13px] md:text-sm md:px-8 md:py-2.5",

@@ -30,11 +30,7 @@ import { useSettings } from "@core/context/SettingsContext";
 import Lottie from "lottie-react";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 
-import {
-  MARQUEE_MESSAGES,
-  ICON_COMPONENTS,
-} from "../constants/homeConstants";
-import PromoMarquee from "../components/home/PromoMarquee";
+import { ICON_COMPONENTS } from "../constants/homeConstants";
 import QuickCategorySlider from "../components/home/QuickCategorySlider";
 import LowestPriceSection from "../components/home/LowestPriceSection";
 import OfferSections from "../components/home/OfferSections";
@@ -215,7 +211,7 @@ const Home = () => {
 
   useEffect(() => {
     if (products.length === 0 && !isLoading) {
-      import("@/assets/lottie/animation.json").then((m) => setNoServiceData(m.default)).catch(() => {});
+      import("@/assets/lottie/animation.json").then((m) => setNoServiceData(m.default)).catch(() => { });
     }
   }, [products.length, isLoading]);
 
@@ -238,7 +234,7 @@ const Home = () => {
             const match = (data.formattedHeaders || []).find((h) => h._id === parsed.headerId);
             if (match) return match;
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!prev || prev._id === "all") return data.activeCategory || data.categories?.[0] || ALL_CATEGORY;
       return (data.categories || []).find((cat) => cat._id === prev._id) || data.activeCategory || prev;
@@ -325,7 +321,7 @@ const Home = () => {
       const missingResults = await Promise.allSettled(missingIds.map((id) => customerApi.getProductById(id, locationParams)));
       const fetchedMissing = missingResults.filter((r) => r.status === "fulfilled").flatMap((r) => { const p = r.value?.data?.result || r.value?.data?.results; return Array.isArray(p) ? p : (p ? [p] : []); }).map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: "8-15 mins" }));
       if (fetchedMissing.length) setProducts((prev) => { const merged = [...prev]; const mergedIds = new Set(merged.map((p) => String(p?._id || p?.id || "").trim())); fetchedMissing.forEach((p) => { const key = String(p?._id || p?.id || "").trim(); if (!mergedIds.has(key)) { merged.push(p); mergedIds.add(key); } }); return merged; });
-    } catch (e) {}
+    } catch (e) { }
   };
 
   useEffect(() => { fetchData(); }, [currentLocation?.latitude, currentLocation?.longitude]);
@@ -409,15 +405,15 @@ const Home = () => {
   };
 
   return (
-    <div className={`min-h-screen pt-[190px] md:pt-[250px] bg-[#F5F7F8]`}>
+    <div className={`min-h-screen pt-0 bg-[#F7F7F7]`}>
       <div className={cn("contents", isProductDetailOpen && "hidden md:contents")}>
         <MainLocationHeader categories={categories} activeCategory={activeCategory} onCategorySelect={setActiveCategory} />
       </div>
 
       <motion.div ref={heroRef} className="block md:hidden will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
-        <div className="relative w-full overflow-hidden">
+        <div className="relative w-full overflow-hidden px-3 pb-6">
           {heroConfig.banners?.items?.length ? (
-            <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} fullWidth edgeToEdge />
+            <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} isHero={true} />
           ) : (
             <div className="w-full h-[190px] bg-[#ecfeff] p-6 relative overflow-hidden flex items-center border-y border-primary/10 shadow-sm">
               <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
@@ -430,7 +426,6 @@ const Home = () => {
         </div>
       </motion.div>
 
-      <PromoMarquee />
       <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/category/${id}`)} />
 
       {products.length === 0 && !isLoading ? (
@@ -443,13 +438,14 @@ const Home = () => {
       ) : (
         <>
           <LowestPriceSection products={products} onSeeAll={() => navigate("/category/all")} />
-          <OfferSections sections={offerSections} noServiceData={noServiceData} />
 
           {sectionsForRenderer.length > 0 && (
-            <div className="container mx-auto px-4 md:px-8 lg:px-[50px] py-10 md:py-16">
+            <div className="w-full mx-auto px-1 md:px-2 lg:px-3 py-10 md:py-3">
               <SectionRenderer sections={sectionsForRenderer} productsById={productsById} categoriesById={categoryMap} subcategoriesById={subcategoryMap} />
             </div>
           )}
+
+          <OfferSections sections={offerSections} noServiceData={noServiceData} />
         </>
       )}
     </div>

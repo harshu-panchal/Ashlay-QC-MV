@@ -1,6 +1,6 @@
 /** Default fallbacks when settings are not yet loaded or API fails */
 export const DEFAULT_SETTINGS = {
-  appName: "App",
+  appName: "Ashlay E-Commerce",
   supportEmail: "",
   supportPhone: "",
   currencySymbol: "\u20B9",
@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS = {
   faviconUrl: "",
   primaryColor: "var(--primary)",
   secondaryColor: "#64748b",
-  companyName: "",
+  companyName: "Ashlay E-Commerce",
   taxId: "",
   address: "",
   facebook: "",
