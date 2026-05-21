@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import Order from "../models/order.js";
-import DeliveryAssignment from "../models/deliveryAssignment.js";
 import OrderOtp from "../models/orderOtp.js";
 import Seller from "../models/seller.js";
 import {
@@ -20,15 +19,21 @@ import { getRedisClient } from "../config/redis.js";
 import {
   emitOrderStatusUpdate,
   emitToSeller,
-  emitDeliveryBroadcastForSeller,
   emitToCustomer,
-  retractDeliveryBroadcastForOrder,
 } from "./orderSocketEmitter.js";
+import {
+  emitDeliveryBroadcastForSeller,
+  retractDeliveryBroadcastForOrder,
+} from "../modules/delivery/deliveryManager.js";
 import { distanceMeters } from "../utils/geoUtils.js";
 import { applyDeliveredSettlement } from "./orderSettlement.js";
 import { requireCanonicalOrderId } from "../utils/orderLookup.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+import {
+  markLatestBroadcastAssigned,
+  recordDeliveryBroadcastAttempt,
+} from "../modules/delivery/internal/deliveryAssignmentStore.js";
 
 const DELIVERY_SEARCH_MAX_ATTEMPTS = () =>
   parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "3", 10);
@@ -265,10 +270,9 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
   await removeSellerTimeoutJob(orderId);
   await scheduleDeliveryTimeoutJob(orderId, 1);
 
-  await DeliveryAssignment.create({
+  await recordDeliveryBroadcastAttempt({
     orderMongoId: updated._id,
     orderId: updated.orderId,
-    status: "broadcasting",
     radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
     attempt: 1,
     expiresAt: updated.deliverySearchExpiresAt,
@@ -435,15 +439,7 @@ export async function deliveryAcceptAtomic(deliveryId, orderId, idempotencyKey) 
 
   await removeDeliveryTimeoutJob(orderId, updated.deliverySearchMeta?.attempt || 1);
 
-  const lastBroadcast = await DeliveryAssignment.findOne({
-    orderId,
-    status: "broadcasting",
-  }).sort({ createdAt: -1 });
-  if (lastBroadcast) {
-    lastBroadcast.status = "assigned";
-    lastBroadcast.winnerDeliveryId = deliveryOid;
-    await lastBroadcast.save();
-  }
+  await markLatestBroadcastAssigned({ orderId, winnerDeliveryId: deliveryOid });
 
   if (idempotencyKey) {
     try {

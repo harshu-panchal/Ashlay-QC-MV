@@ -92,7 +92,7 @@ const Dashboard = () => {
 
   const stats = [
     {
-      label: "Total Revenue",
+      label: "Net Earnings",
       value: statsData?.overview?.totalSales || "₹0",
       change: "+12.5%",
       changeType: "increase",
@@ -112,7 +112,7 @@ const Dashboard = () => {
       description: "vs last month",
     },
     {
-      label: "Avg Order Value",
+      label: "Net Avg Order Value",
       value: statsData?.overview?.avgOrderValue || "₹0",
       change: "+2",
       changeType: "increase",
@@ -209,7 +209,7 @@ const Dashboard = () => {
       },
       address: addressStr || "—",
       items,
-      total: Number(order.pricing?.total ?? 0),
+      total: Number(order.paymentBreakdown?.sellerPayoutTotal ?? order.pricing?.total ?? 0),
       status: order.status || "pending",
       payment:
         order.payment?.method === "cash" || order.payment?.method === "cod"
@@ -462,7 +462,7 @@ const Dashboard = () => {
                     <span className="text-sm text-slate-600">{new Date(order.createdAt).toLocaleDateString()}</span>
                   </td>
                   <td className="py-4 px-4 align-middle">
-                    <span className="text-sm font-semibold text-slate-900">₹{order.pricing?.total || 0}</span>
+                    <span className="text-sm font-semibold text-slate-900">₹{order.paymentBreakdown?.sellerPayoutTotal ?? order.pricing?.total ?? 0}</span>
                   </td>
                   <td className="py-4 px-4 align-middle">
                     <Badge variant={getStatusColor(order.status)} className="capitalize">

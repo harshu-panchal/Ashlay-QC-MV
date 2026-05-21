@@ -103,7 +103,7 @@ const Analytics = () => {
 
   const stats = [
     {
-      label: "Total Sales",
+      label: "Net Sales",
       value: statsData?.overview?.totalSales || "₹0",
       trend: statsData?.overview?.salesTrend || "0%",
       icon: HiOutlineArrowTrendingUp,
@@ -119,7 +119,7 @@ const Analytics = () => {
       bg: "bg-brand-50",
     },
     {
-      label: "Avg Order Value",
+      label: "Net Avg Order Value",
       value: statsData?.overview?.avgOrderValue || "₹0",
       trend: "0%", // Trend for AOV can be added later
       icon: HiOutlineUsers,

@@ -49,7 +49,7 @@ export const getSellerStats = async (req, res) => {
                         {
                             $group: {
                                 _id: null,
-                                totalSales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                                totalSales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", { $ifNull: ["$pricing.total", 0] }] } },
                                 totalOrders: { $sum: 1 },
                             }
                         }
@@ -60,7 +60,7 @@ export const getSellerStats = async (req, res) => {
                         {
                             $group: {
                                 _id: null,
-                                sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                                sales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", { $ifNull: ["$pricing.total", 0] }] } },
                                 count: { $sum: 1 },
                             }
                         }
@@ -71,7 +71,7 @@ export const getSellerStats = async (req, res) => {
                         {
                             $group: {
                                 _id: null,
-                                sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                                sales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", { $ifNull: ["$pricing.total", 0] }] } },
                                 count: { $sum: 1 },
                             }
                         }
@@ -82,7 +82,7 @@ export const getSellerStats = async (req, res) => {
                         {
                             $group: {
                                 _id: { $dateToString: { format: aggregationFormat, date: "$createdAt" } },
-                                sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                                sales: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", { $ifNull: ["$pricing.total", 0] }] } },
                                 orders: { $sum: 1 }
                             }
                         },
@@ -271,9 +271,9 @@ export const getSellerStats = async (req, res) => {
 
         return handleResponse(res, 200, "Stats fetched successfully", {
             overview: {
-                totalSales: `₹${totalSales.toLocaleString()}`,
+                totalSales: `\u20B9${totalSales.toLocaleString()}`,
                 totalOrders: totalOrders.toLocaleString(),
-                avgOrderValue: `₹${Math.round(avgOrderValue).toLocaleString()}`,
+                avgOrderValue: `\u20B9${Math.round(avgOrderValue).toLocaleString()}`,
                 conversionRate: totalOrders > 0 ? "4.2%" : "0%",
                 salesTrend: `${salesTrendPerc > 0 ? '+' : ''}${salesTrendPerc}%`,
                 ordersTrend: `${ordersTrendPerc > 0 ? '+' : ''}${ordersTrendPerc}%`
@@ -330,7 +330,7 @@ export const getSellerEarnings = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalRevenue: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                    totalRevenue: { $sum: { $ifNull: ["$paymentBreakdown.sellerPayoutTotal", { $ifNull: ["$pricing.total", 0] }] } },
                 },
             },
         ]);

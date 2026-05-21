@@ -33,11 +33,12 @@ export async function createPendingPayoutForOrder({
   amount,
   remarks = "Automatic payout creation on delivery.",
   metadata = {},
-}) {
+}, { session: externalSession } = {}) {
   if (!order || !beneficiaryId || amount <= 0) return null;
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const session = externalSession || (await mongoose.startSession());
+  const managedSession = !externalSession;
+  if (managedSession) session.startTransaction();
 
   try {
     const existing = await Payout.findOne({
@@ -47,7 +48,7 @@ export async function createPendingPayoutForOrder({
     }).session(session);
 
     if (existing) {
-      await session.abortTransaction();
+      if (managedSession) await session.abortTransaction();
       return existing;
     }
 
@@ -91,13 +92,13 @@ export async function createPendingPayoutForOrder({
       { session },
     );
 
-    await session.commitTransaction();
+    if (managedSession) await session.commitTransaction();
     return payout[0];
   } catch (error) {
-    await session.abortTransaction();
+    if (managedSession) await session.abortTransaction();
     throw error;
   } finally {
-    session.endSession();
+    if (managedSession) session.endSession();
   }
 }
 

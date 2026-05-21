@@ -461,7 +461,7 @@ export async function placeOrderAtomic({
       userModel: "Seller",
       order: order._id,
       type: "Order Payment",
-      amount: Number(order.paymentBreakdown?.grandTotal || order.pricing?.total || 0),
+      amount: Number(order.paymentBreakdown?.sellerPayoutTotal || order.pricing?.total || 0),
       status: "Pending",
       reference: order.orderId,
       meta: {

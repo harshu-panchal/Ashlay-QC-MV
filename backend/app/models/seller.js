@@ -134,6 +134,12 @@ const sellerSchema = new mongoose.Schema(
       type: Number,
       default: 5, // Default 5km
     },
+    bankDetails: {
+      bankName: { type: String, trim: true, default: "HDFC Bank" },
+      accountNumber: { type: String, trim: true, default: "45892304859" },
+      ifscCode: { type: String, trim: true, default: "HDFC0000123" },
+      accountHolderName: { type: String, trim: true },
+    },
     lastLogin: Date,
   },
   { timestamps: true },
