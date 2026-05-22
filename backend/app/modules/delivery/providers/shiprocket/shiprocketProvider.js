@@ -85,14 +85,52 @@ export const shiprocketProvider = {
     };
   },
 
-  async cancelShipment() {
-    // TODO: implement with Shiprocket cancellation API.
-    return { cancelled: false, reason: "not_implemented" };
+  async cancelShipment(context) {
+    const endpoint = process.env.SHIPROCKET_CANCEL_ENDPOINT;
+    const externalId = context?.externalShipmentId || context?.externalId;
+    if (!endpoint) return { cancelled: false, reason: "SHIPROCKET_CANCEL_ENDPOINT not set" };
+    if (!externalId) return { cancelled: false, reason: "externalShipmentId required" };
+
+    // endpoint examples to configure (depends on Shiprocket API):
+    // - /orders/cancel
+    // - /shipments/cancel
+    const data = await client.request("post", endpoint, { awbs: [String(externalId)] });
+    return { cancelled: true, meta: { raw: data } };
   },
 
-  async getTrackingInfo() {
-    // TODO: implement using Shiprocket tracking endpoint.
-    return { providerStatus: null, location: null, etaTimestamp: null, events: [] };
+  async getTrackingInfo(context) {
+    const endpointTpl = process.env.SHIPROCKET_TRACKING_ENDPOINT;
+    const externalId = context?.externalShipmentId || context?.externalId;
+    if (!endpointTpl) {
+      return { providerStatus: null, location: null, etaTimestamp: null, events: [], meta: { reason: "SHIPROCKET_TRACKING_ENDPOINT not set" } };
+    }
+    if (!externalId) {
+      return { providerStatus: null, location: null, etaTimestamp: null, events: [], meta: { reason: "externalShipmentId required" } };
+    }
+
+    const path = String(endpointTpl).replace("{externalId}", encodeURIComponent(String(externalId)));
+    const data = await client.request("get", path);
+
+    const providerStatus =
+      data?.current_status ??
+      data?.status ??
+      data?.tracking_data?.shipment_status ??
+      data?.tracking_data?.current_status ??
+      null;
+
+    const events =
+      data?.tracking_data?.shipment_track_activities ??
+      data?.tracking_data?.track_status ??
+      data?.events ??
+      [];
+
+    return {
+      providerStatus: providerStatus != null ? String(providerStatus) : null,
+      location: data?.tracking_data?.shipment_track?.[0]?.location ?? null,
+      etaTimestamp: data?.tracking_data?.estimated_delivery_date ?? null,
+      events: Array.isArray(events) ? events : [],
+      meta: { raw: data },
+    };
   },
 
   async getETA() {

@@ -77,3 +77,14 @@ export async function emitToDelivery(deliveryId, { event, payload }) {
   if (!isDeliveryModuleEnabled()) return;
   return getDeliveryProvider().emitToDelivery(deliveryId, { event, payload });
 }
+
+// Internal store facade helpers (keeps order workflow decoupled from store module path).
+export async function markBroadcastAssigned({ orderId, winnerDeliveryId }) {
+  const mod = await import("./internal/deliveryAssignmentStore.js");
+  return mod.markLatestBroadcastAssigned({ orderId, winnerDeliveryId });
+}
+
+export async function recordBroadcastAttempt({ orderId, attempt, radiusMeters, candidateIds }) {
+  const mod = await import("./internal/deliveryAssignmentStore.js");
+  return mod.recordDeliveryBroadcastAttempt({ orderId, attempt, radiusMeters, candidateIds });
+}

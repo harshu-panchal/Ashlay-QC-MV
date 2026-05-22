@@ -26,6 +26,7 @@ import {
   getTrackingInfo,
   mapProviderStatusToWorkflowStatus,
 } from "../modules/delivery/deliveryManager.js";
+import { applyProviderCanonicalStatusAtomic } from "../services/orderWorkflowService.js";
 
 const IDEM_PREFIX = "delivery";
 
@@ -147,6 +148,30 @@ async function processShipmentCreate(job) {
       { shipmentId: shipmentDoc._id.toString(), result },
       { providerName, context: hydratedContext },
     );
+
+    // Start tracking poller fallback (webhooks are primary; polling is a safety net).
+    try {
+      await deliveryTrackingQueue.add(
+        DELIVERY_JOB_NAMES.TRACKING_POLL,
+        {
+          providerName,
+          context: {
+            orderId: hydratedContext.orderId,
+            orderMongoId: hydratedContext.orderMongoId,
+            externalShipmentId: result?.externalId ?? null,
+            preferredProvider: providerName,
+          },
+        },
+        {
+          jobId: `track:${hydratedContext.orderId}`,
+          repeat: { every: 120000 },
+          removeOnComplete: true,
+        },
+      );
+    } catch (e) {
+      logger.warn("Failed to enqueue tracking poller", { orderId: hydratedContext.orderId, error: e?.message });
+    }
+
     return { shipmentId: shipmentDoc._id.toString(), result };
   } catch (error) {
     if (isRetryableError(error)) {
@@ -271,6 +296,34 @@ async function processWebhook(job) {
         },
       },
     );
+  }
+
+  if (orderId && canonicalStatus) {
+    try {
+      await applyProviderCanonicalStatusAtomic(orderId, canonicalStatus, {
+        providerName,
+        providerStatus,
+        externalId,
+      });
+    } catch (e) {
+      logger.warn("applyProviderCanonicalStatusAtomic failed", {
+        orderId,
+        providerName,
+        canonicalStatus,
+        error: e?.message,
+      });
+    }
+  }
+
+  // Stop polling once terminal
+  if (orderId && (canonicalStatus === "DELIVERED" || canonicalStatus === "CANCELLED")) {
+    try {
+      if (typeof deliveryTrackingQueue.removeRepeatable === "function") {
+        await deliveryTrackingQueue.removeRepeatable(DELIVERY_JOB_NAMES.TRACKING_POLL, { every: 120000 }, `track:${orderId}`);
+      }
+    } catch (e) {
+      logger.warn("Failed to remove repeatable tracking job", { orderId, error: e?.message });
+    }
   }
 
   return { accepted: true, orderId, externalId, providerStatus, canonicalStatus };

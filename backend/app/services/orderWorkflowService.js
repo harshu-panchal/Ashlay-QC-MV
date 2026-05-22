@@ -25,6 +25,8 @@ import {
 import {
   emitDeliveryBroadcastForSeller,
   getActiveDeliveryProviderName,
+  markBroadcastAssigned,
+  recordBroadcastAttempt,
   retractDeliveryBroadcastForOrder,
 } from "../modules/delivery/deliveryManager.js";
 import { distanceMeters } from "../utils/geoUtils.js";
@@ -32,11 +34,6 @@ import { applyDeliveredSettlement } from "./orderSettlement.js";
 import { requireCanonicalOrderId } from "../utils/orderLookup.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
-import {
-  markLatestBroadcastAssigned,
-  recordDeliveryBroadcastAttempt,
-} from "../modules/delivery/internal/deliveryAssignmentStore.js";
-
 const DELIVERY_SEARCH_MAX_ATTEMPTS = () =>
   parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "3", 10);
 
@@ -311,7 +308,7 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
   await removeSellerTimeoutJob(orderId);
   await scheduleDeliveryTimeoutJob(orderId, 1);
 
-  await recordDeliveryBroadcastAttempt({
+  await recordBroadcastAttempt({
     orderMongoId: updated._id,
     orderId: updated.orderId,
     radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
@@ -480,7 +477,7 @@ export async function deliveryAcceptAtomic(deliveryId, orderId, idempotencyKey) 
 
   await removeDeliveryTimeoutJob(orderId, updated.deliverySearchMeta?.attempt || 1);
 
-  await markLatestBroadcastAssigned({ orderId, winnerDeliveryId: deliveryOid });
+  await markBroadcastAssigned({ orderId, winnerDeliveryId: deliveryOid });
   await enqueueShipmentCreateJobForOrder(updated);
 
   if (idempotencyKey) {
@@ -1116,4 +1113,85 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
     sellerId: updated.seller,
   });
   return updated;
+}
+
+/**
+ * Apply provider-driven canonical status updates (from webhooks/polling).
+ * Safety rules:
+ * - Never regress status.
+ * - Never transition away from terminal DELIVERED/CANCELLED.
+ * - Only allow a small set of forward transitions that already exist in WORKFLOW_STATUS.
+ */
+export async function applyProviderCanonicalStatusAtomic(orderId, canonicalStatus, meta = {}) {
+  orderId = await requireCanonicalOrderId(orderId);
+  const next = String(canonicalStatus || "").toUpperCase();
+  if (!next) return null;
+
+  const order = await Order.findOne({ orderId, workflowVersion: { $gte: 2 } }).lean();
+  if (!order) return null;
+
+  const current = String(order.workflowStatus || "");
+  const terminal = new Set([WORKFLOW_STATUS.DELIVERED, WORKFLOW_STATUS.CANCELLED]);
+  if (terminal.has(current)) return order;
+
+  if (next === WORKFLOW_STATUS.OUT_FOR_DELIVERY) {
+    const allowed = new Set([WORKFLOW_STATUS.DELIVERY_ASSIGNED, WORKFLOW_STATUS.PICKUP_READY]);
+    if (!allowed.has(current)) return order;
+
+    const now = new Date();
+    const updated = await Order.findOneAndUpdate(
+      { orderId, workflowStatus: { $in: [...allowed] } },
+      {
+        $set: {
+          workflowStatus: WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+          status: legacyStatusFromWorkflow(WORKFLOW_STATUS.OUT_FOR_DELIVERY),
+          outForDeliveryAt: order.outForDeliveryAt || now,
+        },
+      },
+      { new: true },
+    );
+    if (updated?.customer) {
+      emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.OUT_FOR_DELIVERY, meta }, updated.customer);
+    }
+    return updated || order;
+  }
+
+  if (next === WORKFLOW_STATUS.DELIVERED) {
+    const now = new Date();
+    const updated = await Order.findOneAndUpdate(
+      { orderId, workflowStatus: { $ne: WORKFLOW_STATUS.DELIVERED } },
+      {
+        $set: {
+          workflowStatus: WORKFLOW_STATUS.DELIVERED,
+          status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERED),
+          deliveredAt: order.deliveredAt || now,
+        },
+      },
+      { new: true },
+    );
+    if (updated?.customer) {
+      emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.DELIVERED, meta }, updated.customer);
+    }
+    return updated || order;
+  }
+
+  if (next === WORKFLOW_STATUS.CANCELLED) {
+    const updated = await Order.findOneAndUpdate(
+      { orderId, workflowStatus: { $ne: WORKFLOW_STATUS.CANCELLED } },
+      {
+        $set: {
+          workflowStatus: WORKFLOW_STATUS.CANCELLED,
+          status: legacyStatusFromWorkflow(WORKFLOW_STATUS.CANCELLED),
+        },
+      },
+      { new: true },
+    );
+    if (updated?.customer) {
+      emitOrderStatusUpdate(orderId, { workflowStatus: WORKFLOW_STATUS.CANCELLED, meta }, updated.customer);
+    }
+    return updated || order;
+  }
+
+  // Unknown / unsupported canonical status: ignore safely.
+  return order;
 }

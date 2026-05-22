@@ -1,6 +1,7 @@
 import { getDeliveryProviderName } from "./deliveryFlags.js";
 import { noopDeliveryProvider } from "./providers/noopDeliveryProvider.js";
 import { shiprocketProvider } from "./providers/shiprocket/shiprocketProvider.js";
+import { mockDeliveryProvider } from "./providers/mockDeliveryProvider.js";
 
 const internalDeliveryProvider = {
   name: "internal",
@@ -54,6 +55,7 @@ const internalDeliveryProvider = {
 const PROVIDERS = new Map([
   ["internal", internalDeliveryProvider],
   ["shiprocket", shiprocketProvider],
+  ["mock", mockDeliveryProvider],
   ["none", noopDeliveryProvider],
   ["disabled", noopDeliveryProvider],
   ["off", noopDeliveryProvider],
