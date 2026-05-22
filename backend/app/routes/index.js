@@ -22,6 +22,7 @@ import mediaRoute from "./mediaRoutes.js";
 import healthRoute from "./healthRoutes.js";
 import metricsRoute from "./metricsRoutes.js";
 import authOtpRoute from "../modules/otp/otp.routes.js";
+import deliveryWebhookRoutes from "./deliveryWebhookRoutes.js";
 
 import express from "express";
 
@@ -34,6 +35,7 @@ const setupRoutes = (app) => {
 
     router.use("/customer", customerRoute);
     router.use("/delivery", deliveryRoute);
+    router.use("/delivery", deliveryWebhookRoutes);
     router.use("/admin/categories", categoryRoute);
     router.use("/admin", adminRoute);
     router.use("/seller", sellerRoute);

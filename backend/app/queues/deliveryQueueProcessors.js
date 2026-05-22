@@ -23,6 +23,7 @@ import {
   cancelShipment,
   createShipment,
   getTrackingInfo,
+  mapProviderStatusToWorkflowStatus,
 } from "../modules/delivery/deliveryManager.js";
 
 const IDEM_PREFIX = "delivery";
@@ -166,24 +167,59 @@ async function processTrackingPoll(job) {
 }
 
 async function processWebhook(job) {
-  // Placeholder: actual webhook ingestion route will enqueue rawBody + headers.
   const payload = job.data || {};
-  const { providerName, eventId, raw } = payload;
+  const providerName = String(payload.providerName || "").toLowerCase();
+  const parsed = payload.parsed || {};
+
+  const orderId = parsed.orderId ?? payload.orderId ?? null;
+  const externalId = parsed.externalId ?? payload.externalShipmentId ?? null;
+  const providerStatus = parsed.providerStatus ?? null;
+  const canonicalStatus = mapProviderStatusToWorkflowStatus(providerName, providerStatus);
 
   await DeliveryShipment.updateMany(
-    { providerName, externalShipmentId: payload.externalShipmentId ?? null, orderId: payload.orderId ?? null },
     {
+      ...(orderId ? { orderId } : {}),
+      providerName,
+      ...(externalId ? { externalShipmentId: externalId } : {}),
+    },
+    {
+      $set: {
+        providerStatus,
+        canonicalStatus: canonicalStatus ?? null,
+      },
       $push: {
         webhookLog: {
           at: new Date(),
-          eventId: eventId ?? null,
-          payload: raw ?? payload,
+          eventId: parsed?.meta?.eventId ?? null,
+          payload: {
+            parsed,
+            rawBody: payload.rawBody ?? null,
+          },
+        },
+        timeline: {
+          at: new Date(),
+          providerStatus,
+          canonicalStatus: canonicalStatus ?? null,
+          meta: { source: "webhook" },
         },
       },
     },
   );
 
-  return { accepted: true };
+  if (orderId) {
+    await DeliveryAssignment.updateMany(
+      { orderId },
+      {
+        $set: {
+          providerName,
+          ...(externalId ? { externalShipmentId: externalId } : {}),
+          providerStatus,
+        },
+      },
+    );
+  }
+
+  return { accepted: true, orderId, externalId, providerStatus, canonicalStatus };
 }
 
 export function registerDeliveryQueueProcessors() {
@@ -201,4 +237,3 @@ export function registerDeliveryQueueProcessors() {
     queues: ["delivery:shipment", "delivery:cancellation", "delivery:tracking", "delivery:webhook"],
   });
 }
-

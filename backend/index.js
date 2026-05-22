@@ -196,6 +196,15 @@ function createApp() {
     }),
   );
 
+  // Delivery provider webhooks need raw body for signature verification
+  app.use(
+    "/api/delivery/webhook",
+    express.raw({
+      type: "*/*",
+      limit: process.env.DELIVERY_WEBHOOK_MAX_PAYLOAD || "1mb",
+    }),
+  );
+
   app.use(express.json({ limit: process.env.API_JSON_LIMIT || "1mb" }));
   app.use(express.urlencoded({ limit: process.env.API_URLENCODED_LIMIT || "1mb", extended: true }));
 

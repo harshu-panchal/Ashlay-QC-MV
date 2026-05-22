@@ -61,3 +61,9 @@ export function getDeliveryProvider() {
   const key = getDeliveryProviderName();
   return PROVIDERS.get(key) || internalDeliveryProvider;
 }
+
+export function getDeliveryProviderByName(providerName) {
+  const key = String(providerName || "").toLowerCase();
+  if (!key) return internalDeliveryProvider;
+  return PROVIDERS.get(key) || null;
+}
