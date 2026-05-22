@@ -1,0 +1,16 @@
+import { WORKFLOW_STATUS } from "../../../../constants/orderWorkflow.js";
+
+export const SHIPROCKET_STATUS_MAP = {
+  "PICKUP SCHEDULED": WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+  "OUT FOR PICKUP": WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+  "PICKUP COMPLETE": WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+  "OUT FOR DELIVERY": WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+  DELIVERED: WORKFLOW_STATUS.DELIVERED,
+  CANCELLED: WORKFLOW_STATUS.CANCELLED,
+};
+
+export function shiprocketStatusToWorkflowStatus(status) {
+  const key = String(status || "").trim().toUpperCase();
+  return SHIPROCKET_STATUS_MAP[key] ?? null;
+}
+

@@ -19,6 +19,7 @@ import {
 } from "../services/idempotencyService.js";
 import DeliveryShipment from "../models/deliveryShipment.js";
 import DeliveryAssignment from "../models/deliveryAssignment.js";
+import Order from "../models/order.js";
 import {
   cancelShipment,
   createShipment,
@@ -42,11 +43,60 @@ async function processShipmentCreate(job) {
   const context = payload.context || {};
   const providerName = payload.providerName || context.preferredProvider || "internal";
 
+  const hydratedContext = { ...context };
+  if (!hydratedContext.orderMongoId || !hydratedContext.pickup || !hydratedContext.drop) {
+    const order = await Order.findOne({ orderId: hydratedContext.orderId })
+      .populate("seller")
+      .lean();
+
+    if (!order) {
+      const err = new Error("Order not found for shipment creation");
+      err.code = "ORDER_NOT_FOUND";
+      err.statusCode = 404;
+      throw err;
+    }
+
+    hydratedContext.orderMongoId = hydratedContext.orderMongoId || order._id;
+
+    const seller = order.seller && typeof order.seller === "object" ? order.seller : null;
+    hydratedContext.pickup = hydratedContext.pickup || {
+      name: seller?.shopName || seller?.name || "Seller",
+      phone: seller?.phone || null,
+      address: [seller?.address, seller?.locality, seller?.city, seller?.state, seller?.pincode]
+        .filter(Boolean)
+        .join(", "),
+      lat: Array.isArray(seller?.location?.coordinates) ? seller.location.coordinates[1] : null,
+      lng: Array.isArray(seller?.location?.coordinates) ? seller.location.coordinates[0] : null,
+      pincode: seller?.pincode || null,
+    };
+
+    hydratedContext.drop = hydratedContext.drop || {
+      name: order.address?.name || "Customer",
+      phone: order.address?.phone || null,
+      address: [order.address?.address, order.address?.landmark, order.address?.city]
+        .filter(Boolean)
+        .join(", "),
+      lat: order.address?.location?.lat ?? null,
+      lng: order.address?.location?.lng ?? null,
+      pincode: null,
+    };
+
+    hydratedContext.items = hydratedContext.items || (order.items || []).map((it) => ({
+      name: it?.name || "Item",
+      qty: Number(it?.quantity || 1),
+      weight: null,
+      value: Number(it?.price || 0),
+    }));
+
+    hydratedContext.paymentMode = hydratedContext.paymentMode || (order.paymentMode === "ONLINE" ? "PREPAID" : "COD");
+    hydratedContext.totalValue = hydratedContext.totalValue ?? order.pricing?.total ?? 0;
+  }
+
   const idemKey = validateIdempotencyKey(payload.idempotencyKey)
     ? payload.idempotencyKey
-    : buildIdemKey("shipment:create", { orderId: context.orderId, providerName });
+    : buildIdemKey("shipment:create", { orderId: hydratedContext.orderId, providerName });
 
-  const cached = await checkIdempotency(idemKey, { providerName, context });
+  const cached = await checkIdempotency(idemKey, { providerName, context: hydratedContext });
   if (cached.exists && cached.result?.status === "success") {
     return cached.result.data;
   }
@@ -59,11 +109,11 @@ async function processShipmentCreate(job) {
   }
 
   try {
-    const result = await createShipment({ ...context, preferredProvider: providerName });
+    const result = await createShipment({ ...hydratedContext, preferredProvider: providerName });
 
     const shipmentDoc = await DeliveryShipment.create({
-      orderId: context.orderId,
-      orderMongoId: context.orderMongoId,
+      orderId: hydratedContext.orderId,
+      orderMongoId: hydratedContext.orderMongoId,
       providerName,
       externalShipmentId: result?.externalId ?? null,
       trackingUrl: result?.trackingUrl ?? null,
@@ -81,7 +131,7 @@ async function processShipmentCreate(job) {
     });
 
     await DeliveryAssignment.updateMany(
-      { orderId: context.orderId },
+      { orderId: hydratedContext.orderId },
       {
         $set: {
           providerName,
@@ -92,13 +142,17 @@ async function processShipmentCreate(job) {
       },
     );
 
-    await storeIdempotencyResult(idemKey, { shipmentId: shipmentDoc._id.toString(), result }, { providerName, context });
+    await storeIdempotencyResult(
+      idemKey,
+      { shipmentId: shipmentDoc._id.toString(), result },
+      { providerName, context: hydratedContext },
+    );
     return { shipmentId: shipmentDoc._id.toString(), result };
   } catch (error) {
     if (isRetryableError(error)) {
       await releaseIdempotencyLock(idemKey);
     } else {
-      await storeIdempotencyError(idemKey, error, { providerName, context });
+      await storeIdempotencyError(idemKey, error, { providerName, context: hydratedContext });
     }
     throw error;
   }
