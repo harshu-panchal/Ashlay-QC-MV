@@ -15,6 +15,7 @@ import {
   deliveryTimeoutQueue,
   JOB_NAMES,
 } from "../queues/orderQueues.js";
+import { deliveryShipmentQueue, DELIVERY_JOB_NAMES } from "../queues/deliveryQueues.js";
 import { getRedisClient } from "../config/redis.js";
 import {
   emitOrderStatusUpdate,
@@ -23,6 +24,7 @@ import {
 } from "./orderSocketEmitter.js";
 import {
   emitDeliveryBroadcastForSeller,
+  getActiveDeliveryProviderName,
   retractDeliveryBroadcastForOrder,
 } from "../modules/delivery/deliveryManager.js";
 import { distanceMeters } from "../utils/geoUtils.js";
@@ -102,6 +104,45 @@ export async function afterPlaceOrderV2(orderDoc) {
 
 const BULL_ADD_TIMEOUT_MS = () =>
   parseInt(process.env.BULL_ADD_TIMEOUT_MS || "10000", 10);
+
+async function enqueueShipmentCreateJobForOrder(order) {
+  const timeoutMs = BULL_ADD_TIMEOUT_MS();
+  const providerName = getActiveDeliveryProviderName();
+
+  const addPromise = deliveryShipmentQueue
+    .add(
+      DELIVERY_JOB_NAMES.SHIPMENT_CREATE,
+      {
+        providerName,
+        context: {
+          orderId: order.orderId,
+          orderMongoId: order._id,
+          preferredProvider: providerName,
+        },
+      },
+      {
+        jobId: `shipment:create:${order.orderId}:${providerName}`,
+        removeOnComplete: true,
+      },
+    )
+    .catch((err) => {
+      console.warn("[enqueueShipmentCreateJobForOrder] add failed", order.orderId, err.message);
+    });
+
+  try {
+    await Promise.race([
+      addPromise,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`delivery:shipment queue add exceeded ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
+      ),
+    ]);
+  } catch (e) {
+    console.warn("[enqueueShipmentCreateJobForOrder]", order.orderId, e.message);
+  }
+}
 
 export async function scheduleSellerTimeoutJob(orderId) {
   const delay = DEFAULT_SELLER_TIMEOUT_MS();
@@ -440,6 +481,7 @@ export async function deliveryAcceptAtomic(deliveryId, orderId, idempotencyKey) 
   await removeDeliveryTimeoutJob(orderId, updated.deliverySearchMeta?.attempt || 1);
 
   await markLatestBroadcastAssigned({ orderId, winnerDeliveryId: deliveryOid });
+  await enqueueShipmentCreateJobForOrder(updated);
 
   if (idempotencyKey) {
     try {
