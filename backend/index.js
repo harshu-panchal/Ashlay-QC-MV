@@ -299,16 +299,35 @@ async function startHttpServer() {
  */
 async function startQueueWorkers() {
   const { registerOrderQueueProcessors } = await import("./app/queues/orderQueueProcessors.js");
+  const { registerDeliveryQueueProcessors } = await import("./app/queues/deliveryQueueProcessors.js");
   const { sellerTimeoutQueue, deliveryTimeoutQueue } = await import("./app/queues/orderQueues.js");
+  const {
+    deliveryShipmentQueue,
+    deliveryCancellationQueue,
+    deliveryWebhookQueue,
+    deliveryTrackingQueue,
+  } = await import("./app/queues/deliveryQueues.js");
   
   registerOrderQueueProcessors();
+  registerDeliveryQueueProcessors();
   
   // Register queues for graceful shutdown
   registerBullQueue(sellerTimeoutQueue);
   registerBullQueue(deliveryTimeoutQueue);
+  registerBullQueue(deliveryShipmentQueue);
+  registerBullQueue(deliveryCancellationQueue);
+  registerBullQueue(deliveryWebhookQueue);
+  registerBullQueue(deliveryTrackingQueue);
   
   logger.info('Queue workers started', {
-    queues: ['seller-timeout', 'delivery-timeout'],
+    queues: [
+      'seller-timeout',
+      'delivery-timeout',
+      'delivery:shipment',
+      'delivery:cancellation',
+      'delivery:webhook',
+      'delivery:tracking',
+    ],
     role: getProcessRole()
   });
 }
