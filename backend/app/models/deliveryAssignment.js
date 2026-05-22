@@ -22,6 +22,20 @@ const deliveryAssignmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Delivery",
     },
+    providerName: {
+      type: String,
+      index: true,
+    },
+    externalShipmentId: {
+      type: String,
+      index: true,
+    },
+    trackingUrl: {
+      type: String,
+    },
+    providerStatus: {
+      type: String,
+    },
     radiusMeters: {
       type: Number,
       default: 5000,
@@ -45,5 +59,6 @@ const deliveryAssignmentSchema = new mongoose.Schema(
 );
 
 deliveryAssignmentSchema.index({ orderId: 1, createdAt: -1 });
+deliveryAssignmentSchema.index({ providerName: 1, externalShipmentId: 1 });
 
 export default mongoose.model("DeliveryAssignment", deliveryAssignmentSchema);
