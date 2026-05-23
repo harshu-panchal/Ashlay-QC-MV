@@ -184,8 +184,8 @@ const MainLocationHeader = ({
   );
 
   const baseHeaderColor = activeCategory?.headerColor || "var(--primary)";
-  const headerFontColor = activeCategory?.headerFontColor || "#111827";
-  const headerIconColor = activeCategory?.headerIconColor || "#111111";
+  const headerFontColor = activeCategory?.headerFontColor || "#ffffff";
+  const headerIconColor = activeCategory?.headerIconColor || "#ffffff";
   
   const categoryAccent = headerIconColor;
 
@@ -214,11 +214,11 @@ const MainLocationHeader = ({
             borderBottomLeftRadius: headerRoundness,
             borderBottomRightRadius: headerRoundness,
             opacity: bgOpacity,
-            backgroundColor: "#061939",
           }}
-          className="px-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] overflow-hidden transform-gpu will-change-transform">
+          className="bg-gradient-to-r from-[#061939] via-[#0c2a5e] to-[#061939] px-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] overflow-hidden transform-gpu will-change-transform relative">
           {/* Subtle Glow Overlay */}
-          <div className="absolute inset-0 bg-white/8 pointer-events-none" />
+          <div className="absolute inset-0 bg-white/5 pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-60 h-60 bg-white/5 rounded-full blur-[80px] pointer-events-none" />
 
           {/* Corner Lottie */}
           <motion.button
@@ -232,7 +232,7 @@ const MainLocationHeader = ({
             }}
             type="button"
             aria-label="Open cart"
-            onClick={() => navigate("/checkout")}
+            onClick={() => navigate("/cart")}
             className="absolute top-3 right-5 sm:top-4 sm:right-6 md:top-5 md:right-8 z-20 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 cursor-pointer flex items-center justify-center">
             <ShoppingCartOutlinedIcon
               sx={{
@@ -268,7 +268,7 @@ const MainLocationHeader = ({
                   onClick={() => {
                     setIsLocationOpen(true);
                   }}
-                  className="flex items-center gap-1 text-slate-900 hover:text-slate-700 cursor-pointer group active:scale-95 transition-all border-0 bg-transparent p-0 text-left">
+                  className="flex items-center gap-1 text-white hover:text-white/80 cursor-pointer group active:scale-95 transition-all border-0 bg-transparent p-0 text-left">
                   <LocationOnIcon sx={{ fontSize: 14, color: "inherit" }} />
                   <div 
                     className="text-[13px] font-bold leading-tight max-w-[250px] lg:max-w-[320px] truncate"
@@ -302,7 +302,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15, rotate: -5 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/checkout")}
+                onClick={() => navigate("/cart")}
                 className="transition-all hover:text-slate-700 relative group"
                 style={{ color: headerFontColor }}
               >
@@ -352,7 +352,7 @@ const MainLocationHeader = ({
                     onClick={() => {
                       setIsLocationOpen(true);
                     }}
-                    className="flex items-center gap-1 text-slate-800 cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
+                    className="flex items-center gap-1 text-white hover:text-white/80 cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
                     <LocationOnIcon sx={{ fontSize: 14, color: headerFontColor }} />
                     <div 
                       className="text-[10px] font-medium leading-tight max-w-[280px] truncate"

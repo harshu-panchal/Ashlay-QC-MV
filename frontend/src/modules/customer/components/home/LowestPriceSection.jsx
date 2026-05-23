@@ -80,17 +80,10 @@ export const LowestPriceCard = ({ product }) => {
   return (
     <div
       onClick={handleClick}
-      className="w-[148px] shrink-0 snap-start cursor-pointer group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
+      className="font-inter w-[148px] shrink-0 snap-start cursor-pointer group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
     >
       {/* Image box */}
       <div className="relative w-full aspect-square overflow-hidden bg-white">
-        {/* Discount badge */}
-        {/* {discountPct && (
-          <div className="absolute top-2 left-2 z-10 bg-primary text-primary-foreground text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wide">
-            {discountPct}% OFF
-          </div>
-        )} */}
-
         <img
           ref={imageRef}
           src={applyCloudinaryTransform(product.image)}
@@ -125,7 +118,7 @@ export const LowestPriceCard = ({ product }) => {
         {/* Price + wishlist row */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[13px] font-black text-[#1A1A1A]">₹{product.price}</span>
+            <span className="text-[13px] font-[800] text-[#1A1A1A]">₹{product.price}</span>
             {product.originalPrice > product.price && (
               <span className="text-[9px] font-medium text-slate-400 line-through">
                 ₹{product.originalPrice}
@@ -150,21 +143,21 @@ export const LowestPriceCard = ({ product }) => {
         {/* Add to cart / quantity — pinned to bottom */}
         <div className="mt-auto">
           {quantity > 0 ? (
-            <div className="flex items-center bg-white border-[1.5px] border-[#061939] rounded-lg py-2.5 w-full justify-between">
-              <button onClick={handleDecrement} className="px-3 text-[#061939] active:scale-90 transition-transform">
-                <Minus size={10} strokeWidth={3.5} />
+            <div className="flex items-center bg-gradient-to-r from-[#061939] via-[#0E2C5E] to-[#061939] text-white shadow-[0_4px_12px_rgba(6,25,57,0.15)] rounded-xl py-1.5 w-full justify-between">
+              <button onClick={handleDecrement} className="px-2 text-white/80 hover:text-white active:scale-90 transition-transform">
+                <Minus size={10} strokeWidth={3} />
               </button>
-              <span className="text-[11px] font-black text-[#061939]">{quantity}</span>
-              <button onClick={handleIncrement} className="px-3 text-[#061939] active:scale-90 transition-transform">
-                <Plus size={10} strokeWidth={3.5} />
+              <span className="text-[11px] font-black text-white">{quantity}</span>
+              <button onClick={handleIncrement} className="px-2 text-white/80 hover:text-white active:scale-90 transition-transform">
+                <Plus size={10} strokeWidth={3} />
               </button>
             </div>
           ) : (
             <button
               onClick={handleAdd}
-              className="w-full py-2.5 bg-[#061939] text-[#f7f7f7] rounded-lg text-[11px] font-bold tracking-widest active:scale-95 transition-all hover:bg-[#0a2347]"
+              className="w-full py-2 bg-gradient-to-r from-[#061939] via-[#0E2C5E] to-[#061939] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-[0_4px_12px_rgba(6,25,57,0.15)] active:scale-95 transition-all"
             >
-              Add
+              ADD
             </button>
           )}
         </div>

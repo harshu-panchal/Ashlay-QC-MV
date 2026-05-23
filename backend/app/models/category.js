@@ -30,6 +30,10 @@ const categorySchema = new mongoose.Schema(
       type: String, // SVG icon identifier
       trim: true,
     },
+    icon: {
+      type: String, // Cloudinary custom icon URL
+      trim: true,
+    },
     status: {
       type: String,
       enum: ["active", "inactive"],
