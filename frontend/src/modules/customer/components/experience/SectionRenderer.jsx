@@ -36,6 +36,47 @@ const LazyLoadTrigger = ({ enabled, onVisible }) => {
   return <div ref={ref} className="h-2 w-full" aria-hidden="true" />;
 };
 
+const LazySectionWrapper = ({ children, displayType }) => {
+  const [isIntersected, setIsIntersected] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setIsIntersected(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsIntersected(true);
+          observer.disconnect();
+        }
+      },
+      { root: null, rootMargin: "350px 0px", threshold: 0.01 }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const minHeight = React.useMemo(() => {
+    if (displayType === "banners") return "140px";
+    if (displayType === "categories" || displayType === "subcategories") return "120px";
+    if (displayType === "products") return "260px";
+    return "150px";
+  }, [displayType]);
+
+  return (
+    <div ref={ref} style={{ minHeight: isIntersected ? "auto" : minHeight }}>
+      {isIntersected ? children : null}
+    </div>
+  );
+};
+
 const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}, subcategoriesById = {} }) => {
   const navigate = useNavigate();
   const [sectionVisibleCounts, setSectionVisibleCounts] = React.useState({});
@@ -61,7 +102,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
   );
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-3 md:gap-4">
       {sections.map((section, sectionIndex) => {
         const sectionKey = String(
           section?._id || section?.id || `${section?.displayType || "section"}-${sectionIndex}`
@@ -72,9 +113,14 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
           const items = section.config?.banners?.items || [];
           if (!items.length) return null;
           return (
-            <div key={section._id || sectionKey} className="-mt-8 md:-mt-8">
-              <ExperienceBannerCarousel section={section} items={items} slideGap={12} />
-            </div>
+            <LazySectionWrapper
+              key={section._id || sectionKey}
+              displayType="banners"
+            >
+              <div className="py-1 md:py-1.5">
+                <ExperienceBannerCarousel section={section} items={items} slideGap={12} />
+              </div>
+            </LazySectionWrapper>
           );
         }
 
@@ -95,11 +141,14 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
           if (!visibleItems.length) return null;
 
           return (
-            <div
+            <LazySectionWrapper
               key={section._id || sectionKey}
-              id={`section-${section._id}`}
-              className="-mx-2 md:-mx-4 lg:-mx-6 px-2 md:px-4 lg:px-6"
+              displayType="categories"
             >
+              <div
+                id={`section-${section._id}`}
+                className="-mx-2 md:-mx-4 lg:-mx-6 px-2 md:px-4 lg:px-6 pb-2 md:pb-3"
+              >
               {heading && (
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
@@ -150,7 +199,8 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                 enabled={hasMore}
                 onVisible={() => loadMoreForSection(sectionKey, allItems.length)}
               />
-            </div>
+              </div>
+            </LazySectionWrapper>
           );
         }
 
@@ -170,11 +220,14 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
           if (!visibleItems.length) return null;
 
           return (
-            <div
+            <LazySectionWrapper
               key={section._id || sectionKey}
-              id={`section-${section._id}`}
-              className="-mx-2 md:-mx-4 lg:-mx-6 px-2 md:px-4 lg:px-6"
+              displayType="subcategories"
             >
+              <div
+                id={`section-${section._id}`}
+                className="-mx-2 md:-mx-4 lg:-mx-6 px-2 md:px-4 lg:px-6 pb-2 md:pb-3"
+              >
               {heading && (
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
@@ -238,7 +291,8 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                 enabled={hasMore}
                 onVisible={() => loadMoreForSection(sectionKey, allItems.length)}
               />
-            </div>
+              </div>
+            </LazySectionWrapper>
           );
         }
 
@@ -284,11 +338,14 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
             const hasMore = items.length < allProducts.length;
 
             return (
-              <div
+              <LazySectionWrapper
                 key={section._id || sectionKey}
-                id={`section-${section._id}`}
-                className="mt-6 mb-2 overflow-hidden"
+                displayType="products"
               >
+                <div
+                  id={`section-${section._id}`}
+                  className="pb-2 md:pb-3 overflow-hidden"
+                >
                 <div className="flex items-center justify-between mb-3 px-4 md:px-6 lg:px-8">
                   {heading && (
                     <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
@@ -316,7 +373,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                       key={product._id || product.id}
                       className="w-[148px] shrink-0"
                     >
-                      <LowestPriceCard product={product} />
+                      <LowestPriceCard product={product} className="w-full h-full" />
                     </div>
                   ))}
                 </div>
@@ -324,7 +381,8 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   enabled={hasMore}
                   onVisible={() => loadMoreForSection(sectionKey, allProducts.length)}
                 />
-              </div>
+                </div>
+              </LazySectionWrapper>
             );
           }
 
@@ -339,11 +397,14 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
           const hasMore = items.length < cappedItems.length;
 
           return (
-            <div
+            <LazySectionWrapper
               key={section._id || sectionKey}
-              id={`section-${section._id}`}
-              className="px-4 md:px-6 lg:px-8 mt-6"
+              displayType="products"
             >
+              <div
+                id={`section-${section._id}`}
+                className="px-4 md:px-6 lg:px-8 pb-2 md:pb-3"
+              >
               <div className="flex items-center justify-between mb-3 px-0">
                 {heading && (
                   <h3 className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A] leading-none">
@@ -356,7 +417,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
               </div>
               <div
                 className={cn(
-                  "grid gap-1.5 sm:gap-2.5",
+                  "grid gap-x-2 md:gap-x-3 gap-y-5 md:gap-y-6",
                   columns === 1
                     ? "grid-cols-1"
                     : columns === 2
@@ -367,8 +428,8 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                 )}
               >
                 {items.map((product) => (
-                  <div key={product._id || product.id}>
-                    <LowestPriceCard product={product} />
+                  <div key={product._id || product.id} className="w-full">
+                    <LowestPriceCard product={product} className="w-full h-full" />
                   </div>
                 ))}
               </div>
@@ -376,7 +437,8 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                 enabled={hasMore}
                 onVisible={() => loadMoreForSection(sectionKey, cappedItems.length)}
               />
-            </div>
+              </div>
+            </LazySectionWrapper>
           );
         }
 

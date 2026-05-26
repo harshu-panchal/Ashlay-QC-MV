@@ -483,5 +483,83 @@ body {
   color: rgba(6, 25, 57, 0.85) !important;
 }
 
+/* Ensure tables, images, and text in rich text descriptions never overflow the screen */
+.edit-rich-text,
+.whitespace-pre-line {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+}
+
+.edit-rich-text table,
+.whitespace-pre-line table {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  border-collapse: collapse !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+  scrollbar-width: thin !important;
+}
+
+/* Custom premium scrollbar for product details table */
+.edit-rich-text table::-webkit-scrollbar,
+.whitespace-pre-line table::-webkit-scrollbar {
+  height: 4px !important;
+}
+
+.edit-rich-text table::-webkit-scrollbar-thumb,
+.whitespace-pre-line table::-webkit-scrollbar-thumb {
+  background-color: rgba(6, 25, 57, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.edit-rich-text table::-webkit-scrollbar-track,
+.whitespace-pre-line table::-webkit-scrollbar-track {
+  background-color: transparent !important;
+}
+
+.edit-rich-text tr,
+.whitespace-pre-line tr {
+  display: table-row !important;
+}
+
+.edit-rich-text td,
+.edit-rich-text th,
+.whitespace-pre-line td,
+.whitespace-pre-line th {
+  padding: 10px 14px !important;
+  border: 1px solid #E2E8F0 !important;
+  font-size: 0.8125rem !important; /* 13px */
+  line-height: 1.4 !important;
+  white-space: nowrap !important; /* Allow values to stretch naturally for horizontal swipe */
+  vertical-align: middle !important;
+}
+
+.edit-rich-text th,
+.whitespace-pre-line th {
+  background-color: #F8FAFC !important;
+  font-weight: 700 !important;
+  color: #061939 !important;
+}
+
+.edit-rich-text img,
+.whitespace-pre-line img {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  border-radius: 12px !important;
+}
+
+.edit-rich-text pre,
+.whitespace-pre-line pre {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+
 
 

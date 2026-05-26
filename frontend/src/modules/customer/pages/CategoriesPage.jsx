@@ -160,14 +160,11 @@ const CategoriesPage = () => {
             <div className="max-w-[1280px] mx-auto px-4 pt-5 pb-20">
                 {isLoading ? (
                     // Premium Skeleton Loader
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 animate-pulse">
-                        {[...Array(6)].map((_, i) => (
-                            <div key={i} className="flex flex-col gap-3.5">
-                                <div className="w-full aspect-square bg-[#E5E5E7] rounded-3xl" />
-                                <div className="px-1 flex flex-col gap-2">
-                                    <div className="h-4 bg-slate-200 rounded w-2/3" />
-                                    <div className="h-3 bg-slate-100 rounded w-1/2" />
-                                </div>
+                    <div className="grid grid-cols-4 gap-x-3.5 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 animate-pulse">
+                        {[...Array(12)].map((_, i) => (
+                            <div key={i} className="flex flex-col items-center gap-1.5">
+                                <div className="w-full aspect-square bg-[#E5E5E7] rounded-full" />
+                                <div className="h-3 bg-slate-200 rounded w-4/5" />
                             </div>
                         ))}
                     </div>
@@ -178,35 +175,29 @@ const CategoriesPage = () => {
                         <span className="text-xs text-slate-400 mt-1">Try searching for something else</span>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="grid grid-cols-4 gap-x-3.5 gap-y-5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
                         {allCategories.map((category) => {
-                            const count = productCounts[category.id] ?? 0;
                             return (
                                 <Link
                                     to={`/category/${category.id}`}
                                     state={{ categoryName: category.name }}
                                     key={category.id}
-                                    className="flex flex-col gap-3.5 group cursor-pointer"
+                                    className="flex flex-col items-center gap-1.5 group cursor-pointer"
                                 >
-                                    {/* Image Container Card */}
-                                    <div className="w-full aspect-square bg-[#E5E5E7] border border-slate-100 rounded-3xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.07)] transition-all duration-300 hover:scale-[1.015] flex items-center justify-center p-0">
+                                    {/* Circular Image Container Card */}
+                                    <div className="relative aspect-square w-full rounded-full bg-[#F8F9FA] border border-slate-100/80 flex items-center justify-center overflow-hidden p-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:border-slate-200 transition-all duration-300 hover:scale-[1.015]">
                                         <img
                                             src={applyCloudinaryTransform(category.image)}
                                             alt={category.name}
                                             loading="lazy"
-                                            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                                            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-[1.03]"
                                         />
                                     </div>
 
-                                    {/* Text Details (Outside Card) */}
-                                    <div className="px-1 flex flex-col gap-1.5 select-none">
-                                        <span className="font-bold text-[13px] text-[#061939] leading-tight truncate">
-                                            {category.name}
-                                        </span>
-                                        <span className="text-[12px] text-slate-400 font-medium">
-                                            {count} Product{count !== 1 ? 's' : ''}
-                                        </span>
-                                    </div>
+                                    {/* Category Name Label */}
+                                    <span className="text-[11px] font-semibold text-slate-700 text-center leading-snug line-clamp-2 group-hover:text-[#061939] px-0.5 select-none">
+                                        {category.name}
+                                    </span>
                                 </Link>
                             );
                         })}

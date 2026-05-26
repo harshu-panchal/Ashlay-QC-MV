@@ -9,7 +9,7 @@ import { useProductDetail } from "../../context/ProductDetailContext";
 import { useCartAnimation } from "../../context/CartAnimationContext";
 import { useToast } from "@shared/components/ui/Toast";
 
-export const LowestPriceCard = ({ product }) => {
+export const LowestPriceCard = ({ product, className }) => {
   const { toggleWishlist: toggleWishlistGlobal, isInWishlist } = useWishlist();
   const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
   const { openProduct } = useProductDetail();
@@ -80,7 +80,10 @@ export const LowestPriceCard = ({ product }) => {
   return (
     <div
       onClick={handleClick}
-      className="font-inter w-[148px] shrink-0 snap-start cursor-pointer group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
+      className={cn(
+        "font-inter cursor-pointer group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col",
+        className || "w-[148px] shrink-0 snap-start"
+      )}
     >
       {/* Image box */}
       <div className="relative w-full aspect-square overflow-hidden bg-white">

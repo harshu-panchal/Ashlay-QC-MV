@@ -670,7 +670,7 @@ const ProductDetailSheet = () => {
                                                 icon={<Clock size={16} />}
                                             >
                                                 <div
-                                                    className="text-[13px] text-slate-500 font-medium leading-relaxed whitespace-pre-line"
+                                                    className="text-[13px] text-slate-500 font-medium leading-relaxed whitespace-pre-line edit-rich-text"
                                                     dangerouslySetInnerHTML={{ __html: cleanDesc }}
                                                 />
                                             </AccordionItem>

@@ -249,6 +249,10 @@ const Home = () => {
       const cached = homePageDataCache.get(cacheKey);
       if (cached) {
         applyHomePageData(cached, { cacheKey, persist: false });
+        productsRef.current = cached.products || [];
+        if (cached.experienceSections?.length > 0) {
+          hydrateSelectedSectionProducts(cached.experienceSections);
+        }
         setIsLoading(false);
         return;
       }
@@ -343,6 +347,10 @@ const Home = () => {
       const sectionsList = sectionsRes?.data?.results || sectionsRes?.data?.result || sectionsRes?.data;
       nextHomeData.offerSections = Array.isArray(sectionsList) ? sectionsList : [];
       applyHomePageData(nextHomeData, { cacheKey });
+      productsRef.current = nextHomeData.products;
+      if (nextHomeData.experienceSections?.length > 0) {
+        await hydrateSelectedSectionProducts(nextHomeData.experienceSections);
+      }
     } catch (error) { console.error("Error:", error); } finally { setIsLoading(false); }
   };
 
@@ -468,7 +476,7 @@ const Home = () => {
           <LowestPriceSection products={products} onSeeAll={() => navigate("/category/all")} />
 
           {sectionsForRenderer.length > 0 && (
-            <div className="w-full mx-auto px-1 md:px-2 lg:px-3 py-14 md:py-20">
+            <div className="w-full mx-auto px-1 md:px-2 lg:px-3 pt-0 pb-14 md:pt-0 md:pb-20">
               <SectionRenderer sections={sectionsForRenderer} productsById={productsById} categoriesById={categoryMap} subcategoriesById={subcategoryMap} />
             </div>
           )}
