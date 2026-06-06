@@ -35,6 +35,8 @@ const ContentManager = () => {
     const [selectedHeaderId, setSelectedHeaderId] = useState('');
     const [sections, setSections] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [allProducts, setAllProducts] = useState([]);
+    const [isProductsLoading, setIsProductsLoading] = useState(false);
 
     const [activeTab, setActiveTab] = useState('banners');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,6 +78,28 @@ const ContentManager = () => {
         return selectedHeader?.children || [];
     }, [headerCategories, pageType, selectedHeader]);
 
+    const productCategoryPool = useMemo(() => availableCategories || [], [availableCategories]);
+
+    const productSubCategoryPool = useMemo(
+        () =>
+            productCategoryPool
+                .filter(c => formData.productCategoryIds.includes(c._id))
+                .flatMap(c => c.children || []),
+        [productCategoryPool, formData.productCategoryIds]
+    );
+
+    const filteredProducts = useMemo(() => {
+        const selectedCategoryIds = formData.productCategoryIds || [];
+        const selectedSubCategoryIds = formData.productSubCategoryIds || [];
+        return (allProducts || []).filter((p) => {
+            const catId = p.categoryId?._id || p.categoryId || '';
+            const subId = p.subcategoryId?._id || p.subcategoryId || '';
+            const categoryMatch = selectedCategoryIds.length ? selectedCategoryIds.includes(catId) : true;
+            const subCategoryMatch = selectedSubCategoryIds.length ? selectedSubCategoryIds.includes(subId) : true;
+            return categoryMatch && subCategoryMatch;
+        });
+    }, [allProducts, formData.productCategoryIds, formData.productSubCategoryIds]);
+
     const loadHeaderCategories = async () => {
         try {
             // Use category tree so that header -> category -> subcategory hierarchy is available
@@ -115,8 +139,27 @@ const ContentManager = () => {
         }
     };
 
+    const loadProducts = async () => {
+        setIsProductsLoading(true);
+        try {
+            const res = await adminApi.getProducts({ limit: 500, status: 'active' });
+            const list =
+                res?.data?.results ||
+                res?.data?.result?.items ||
+                res?.data?.result ||
+                [];
+            setAllProducts(Array.isArray(list) ? list : []);
+        } catch (e) {
+            console.error(e);
+            showToast('Failed to load products', 'error');
+        } finally {
+            setIsProductsLoading(false);
+        }
+    };
+
     useEffect(() => {
         loadHeaderCategories();
+        loadProducts();
     }, []);
 
     // Apply deep-link from Hero & categories per page (?pageType=home | ?pageType=header&headerId=xxx)
@@ -910,7 +953,7 @@ const ContentManager = () => {
                                 </label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="flex flex-wrap gap-2">
-                                        {(selectedHeader?.children || []).map(c => {
+                                        {productCategoryPool.map(c => {
                                             const isSelected = formData.productCategoryIds.includes(c._id);
                                             return (
                                                 <button
@@ -952,10 +995,7 @@ const ContentManager = () => {
                                         })}
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {(selectedHeader?.children || [])
-                                            .filter(c => formData.productCategoryIds.includes(c._id))
-                                            .flatMap(c => c.children || [])
-                                            .map(s => {
+                                        {productSubCategoryPool.map(s => {
                                                 const isSelected = formData.productSubCategoryIds.includes(s._id);
                                                 return (
                                                     <button
@@ -983,7 +1023,54 @@ const ContentManager = () => {
                                     </div>
                                 </div>
                                 <p className="text-[10px] text-slate-400">
-                                    You can later extend this to select specific products.
+                                    Filter is optional. You can also manually pick products below.
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    Choose products to show (optional)
+                                </label>
+                                {isProductsLoading ? (
+                                    <p className="text-[10px] text-slate-400">Loading products...</p>
+                                ) : (
+                                    <div className="max-h-52 overflow-y-auto rounded-2xl bg-slate-50 p-2 border border-slate-200">
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {filteredProducts.map((p) => {
+                                                const pid = p._id || p.id;
+                                                const isSelected = formData.productIds.includes(pid);
+                                                return (
+                                                    <button
+                                                        key={pid}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                productIds: isSelected
+                                                                    ? prev.productIds.filter(id => id !== pid)
+                                                                    : [...prev.productIds, pid],
+                                                            }))
+                                                        }
+                                                        className={cn(
+                                                            "w-full text-left px-3 py-2 rounded-xl text-[11px] font-bold border transition-all",
+                                                            isSelected
+                                                                ? "bg-primary text-primary-foreground border-primary"
+                                                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                                                        )}
+                                                    >
+                                                        {p.name}
+                                                    </button>
+                                                );
+                                            })}
+                                            {!filteredProducts.length && (
+                                                <p className="px-2 py-1 text-[10px] text-slate-400">
+                                                    No matching products for current filters.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                <p className="text-[10px] text-slate-400">
+                                    If you select specific products, only those will be shown.
                                 </p>
                             </div>
                         </div>

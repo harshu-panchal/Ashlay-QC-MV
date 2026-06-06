@@ -13,15 +13,15 @@ const Category = mongoose.model('Category', CategorySchema, 'categories');
 
 async function checkCategories() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 
-    const counts = await Category.aggregate([
+    const counts = await mongoose.connection.db.collection('quick_categories').aggregate([
       { $group: { _id: '$type', count: { $sum: 1 } } }
-    ]);
+    ]).toArray();
     console.log('Category type counts:', counts);
 
-    const samples = await Category.find({ type: 'header' }).limit(5).lean();
+    const samples = await mongoose.connection.db.collection('quick_categories').find({ type: 'header' }).limit(5).toArray();
     console.log('Sample headers:', JSON.stringify(samples, null, 2));
 
     await mongoose.disconnect();

@@ -1,5 +1,6 @@
 import tailwindcssAnimate from 'tailwindcss-animate';
 
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -16,7 +17,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Outfit', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
         heading: ['Fredoka', 'sans-serif'],
       },
       colors: {
@@ -177,4 +178,4 @@ export default {
     },
   },
   plugins: [tailwindcssAnimate],
-}
+};
