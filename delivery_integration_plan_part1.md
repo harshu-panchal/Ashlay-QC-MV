@@ -375,7 +375,7 @@ export const deliveryTrackingQueue = new Bull("delivery:tracking", { ... });
 | Provider circuit open | Skip provider, use next in fallback chain |
 | Cancellation fails | Mark `cancellation_pending`, retry job, alert admin if stuck > 30min |
 
----
+----+
 
 ## 10. Idempotency Protection
 
