@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import Lottie from "lottie-react";
 import LocationDrawer from "./LocationDrawer";
 import { useLocation } from "../../context/LocationContext";
 import { useProductDetail } from "../../context/ProductDetailContext";
@@ -9,18 +8,14 @@ import { useSettings } from "@core/context/SettingsContext";
 import { cn } from "@/lib/utils";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import {
-  buildHeaderGradient,
   buildMiniCartColor,
-  buildSearchBarBackgroundColor,
-  shiftHex,
 } from "../../utils/headerTheme";
 import LogoImage from "../../../../assets/Logo.png";
+import AshlayLogoWhite from "../../../../assets/ashlay_logo_white.webp";
+import PageSearchBar from "./PageSearchBar";
 
 // MUI Icons
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import SearchIcon from "@mui/icons-material/Search";
-import MicIcon from "@mui/icons-material/Mic";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
@@ -151,14 +146,6 @@ const MainLocationHeader = ({
 }) => {
   const { scrollY } = useScroll();
   const [isLocationOpen, setIsLocationOpen] = useState(false);
-  const [cartAnimData, setCartAnimData] = useState(null);
-
-  // Dynamically load shopping-cart Lottie on mount
-  useEffect(() => {
-    import("../../../../assets/lottie/shopping-cart.json")
-      .then((m) => setCartAnimData(m.default))
-      .catch(() => {});
-  }, []);
   const { currentLocation, refreshLocation, isFetchingLocation } =
     useLocation();
   const { isOpen: isProductDetailOpen } = useProductDetail();
@@ -167,100 +154,16 @@ const MainLocationHeader = ({
   const logoUrl = settings?.logoUrl || LogoImage;
   const navigate = useNavigate();
 
-  // Search Logic
-  const handleSearchClick = () => {
-    navigate("/search");
-  };
 
-  const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") {
-      navigate("/search", { state: { query: e.target.value } });
-    }
-  };
-
-  // Search placeholder animation
-  const [searchPlaceholder, setSearchPlaceholder] = useState("Search ");
-  const [typingState, setTypingState] = useState({
-    textIndex: 0,
-    charIndex: 0,
-    isDeleting: false,
-    isPaused: false,
-  });
-
-  const staticText = "Search ";
-  const typingPhrases = [
-    '"bread"',
-    '"milk"',
-    '"chocolate"',
-    '"eggs"',
-    '"chips"',
-  ];
-
-  useEffect(() => {
-    const { textIndex, charIndex, isDeleting, isPaused } = typingState;
-    const currentPhrase = typingPhrases[textIndex];
-
-    if (isPaused) {
-      const timeout = setTimeout(() => {
-        setTypingState((prev) => ({
-          ...prev,
-          isPaused: false,
-          isDeleting: true,
-        }));
-      }, 2000); // Pause after full phrase
-      return () => clearTimeout(timeout);
-    }
-
-    const timeout = setTimeout(
-      () => {
-        if (!isDeleting) {
-          // Typing
-          if (charIndex < currentPhrase.length) {
-            setSearchPlaceholder(
-              staticText + currentPhrase.substring(0, charIndex + 1),
-            );
-            setTypingState((prev) => ({
-              ...prev,
-              charIndex: prev.charIndex + 1,
-            }));
-          } else {
-            // Finished typing
-            setTypingState((prev) => ({ ...prev, isPaused: true }));
-          }
-        } else {
-          // Deleting
-          if (charIndex > 0) {
-            setSearchPlaceholder(
-              staticText + currentPhrase.substring(0, charIndex - 1),
-            );
-            setTypingState((prev) => ({
-              ...prev,
-              charIndex: prev.charIndex - 1,
-            }));
-          } else {
-            // Finished deleting
-            setTypingState((prev) => ({
-              ...prev,
-              isDeleting: false,
-              textIndex: (prev.textIndex + 1) % typingPhrases.length,
-            }));
-          }
-        }
-      },
-      isDeleting ? 50 : 100,
-    ); // 50ms deleting speed, 100ms typing speed
-
-    return () => clearTimeout(timeout);
-  }, [typingState]);
 
   // Smooth scroll interpolations
   const headerTopPadding = useTransform(scrollY, [0, 160], [16, 12]);
-  const headerBottomPadding = useTransform(scrollY, [0, 160], [4, 3]);
-  const headerRoundness = useTransform(scrollY, [0, 160], [0, 24]);
-  const bgOpacity = useTransform(scrollY, [0, 160], [1, 0.98]);
+  const headerBottomPadding = useTransform(scrollY, [0, 160], [10, 6]);
+  const headerRoundness = useTransform(scrollY, [0, 160], [18, 24]);
+  const bgOpacity = useTransform(scrollY, [0, 90, 160], [1, 1, 0]);
 
   // Content animations
-  const contentHeight = useTransform(scrollY, [0, 160], ["64px", "0px"]);
+  const contentHeight = useTransform(scrollY, [0, 160], ["86px", "0px"]);
   const contentOpacity = useTransform(scrollY, [0, 160], [1, 0]);
   const navHeight = useTransform(scrollY, [0, 200], ["60px", "0px"]);
   const navOpacity = useTransform(scrollY, [0, 200], [1, 0]);
@@ -281,11 +184,9 @@ const MainLocationHeader = ({
   );
 
   const baseHeaderColor = activeCategory?.headerColor || "var(--primary)";
-  const headerFontColor = activeCategory?.headerFontColor || "#111827";
-  const headerIconColor = activeCategory?.headerIconColor || "#111111";
+  const headerFontColor = activeCategory?.headerFontColor || "#ffffff";
+  const headerIconColor = activeCategory?.headerIconColor || "#ffffff";
   
-  const headerGradient = buildHeaderGradient(baseHeaderColor);
-  const searchBarBg = buildSearchBarBackgroundColor(baseHeaderColor);
   const categoryAccent = headerIconColor;
 
   useEffect(() => {
@@ -302,7 +203,7 @@ const MainLocationHeader = ({
     <>
       <div
         className={cn(
-          "fixed top-0 left-0 right-0 z-200",
+          "relative z-200",
           isProductDetailOpen && "hidden md:block",
         )}>
         <motion.div
@@ -313,11 +214,11 @@ const MainLocationHeader = ({
             borderBottomLeftRadius: headerRoundness,
             borderBottomRightRadius: headerRoundness,
             opacity: bgOpacity,
-            backgroundImage: headerGradient,
           }}
-          className="px-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] overflow-hidden transform-gpu will-change-transform">
+          className="bg-gradient-to-r from-[#061939] via-[#0c2a5e] to-[#061939] px-4 shadow-[0_4px_20px_rgba(0,0,0,0.15)] overflow-hidden transform-gpu will-change-transform relative">
           {/* Subtle Glow Overlay */}
-          <div className="absolute inset-0 bg-white/8 pointer-events-none" />
+          <div className="absolute inset-0 bg-white/5 pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-60 h-60 bg-white/5 rounded-full blur-[80px] pointer-events-none" />
 
           {/* Corner Lottie */}
           <motion.button
@@ -331,17 +232,14 @@ const MainLocationHeader = ({
             }}
             type="button"
             aria-label="Open cart"
-            onClick={() => navigate("/checkout")}
-            className="absolute top-3 right-5 sm:top-4 sm:right-6 md:top-5 md:right-8 z-20 w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 cursor-pointer">
-            {cartAnimData ? (
-              <Lottie
-                animationData={cartAnimData}
-                loop
-                className="w-full h-full pointer-events-none drop-shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
-              />
-            ) : (
-              <div className="w-full h-full" />
-            )}
+            onClick={() => navigate("/cart")}
+            className="absolute top-3 right-5 sm:top-4 sm:right-6 md:top-5 md:right-8 z-20 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 cursor-pointer flex items-center justify-center">
+            <ShoppingCartOutlinedIcon
+              sx={{
+                fontSize: { xs: 24, sm: 28, md: 32 },
+                color: headerFontColor,
+              }}
+            />
           </motion.button>
 
           {/* Desktop/Tablet Header Layout (md and above) */}
@@ -363,15 +261,6 @@ const MainLocationHeader = ({
 
               {/* Location Block (Desktop inline row) */}
               <div className="flex flex-col border-l border-black/10 pl-4 lg:pl-8 h-10 justify-center">
-                <div className="flex items-center gap-1.5 opacity-70">
-                  <AccessTimeIcon sx={{ fontSize: 13, color: headerFontColor }} />
-                  <span 
-                    className="text-[11px] font-bold uppercase tracking-wider leading-none"
-                    style={{ color: headerFontColor }}
-                  >
-                    {currentLocation.time}
-                  </span>
-                </div>
                 <button
                   type="button"
                   data-lenis-prevent
@@ -379,7 +268,7 @@ const MainLocationHeader = ({
                   onClick={() => {
                     setIsLocationOpen(true);
                   }}
-                  className="flex items-center gap-1 text-slate-900 hover:text-slate-700 cursor-pointer group active:scale-95 transition-all border-0 bg-transparent p-0 text-left">
+                  className="flex items-center gap-1 text-white hover:text-white/80 cursor-pointer group active:scale-95 transition-all border-0 bg-transparent p-0 text-left">
                   <LocationOnIcon sx={{ fontSize: 14, color: "inherit" }} />
                   <div 
                     className="text-[13px] font-bold leading-tight max-w-[250px] lg:max-w-[320px] truncate"
@@ -396,26 +285,7 @@ const MainLocationHeader = ({
               </div>
             </div>
 
-            {/* Center Section: Search Bar */}
-            <div className="flex-1 max-w-[450px] lg:max-w-2xl px-6">
-              <motion.div
-                onClick={handleSearchClick}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                style={{ backgroundColor: searchBarBg }}
-                className="rounded-full px-4 h-11 shadow-md flex items-center border border-white/50 transition-all duration-200 focus-within:ring-2 focus-within:ring-brand-400/60 cursor-pointer">
-                <SearchIcon sx={{ color: "#000000", fontSize: 20 }} />
-                <input
-                  type="text"
-                  placeholder={searchPlaceholder || "Search Products..."}
-                  readOnly
-                  className="flex-1 bg-transparent border-none outline-none pl-2 text-slate-800 font-semibold placeholder:text-black text-[15px] cursor-pointer"
-                />
-                <div className="flex items-center gap-2 border-l border-slate-100 pl-3">
-                  <MicIcon sx={{ color: "#000000", fontSize: 20 }} />
-                </div>
-              </motion.div>
-            </div>
+
 
             {/* Right Section: Action Icons */}
             <div className="flex items-center gap-5 lg:gap-8 shrink-0">
@@ -432,7 +302,7 @@ const MainLocationHeader = ({
               <motion.button
                 whileHover={{ scale: 1.15, rotate: -5 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => navigate("/checkout")}
+                onClick={() => navigate("/cart")}
                 className="transition-all hover:text-slate-700 relative group"
                 style={{ color: headerFontColor }}
               >
@@ -465,25 +335,16 @@ const MainLocationHeader = ({
                 overflow: "hidden",
               }}
               className="relative z-10">
-              <div className="mb-1">
-                <span 
-                  className="inline-flex items-center rounded-full border border-black/10 bg-white/18 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm"
-                  style={{ color: headerFontColor }}
-                >
-                  {appName}
-                </span>
+              <div className="mb-0 -mt-2 -ml-1">
+                <img
+                  src={AshlayLogoWhite}
+                  alt={`${appName} logo`}
+                  loading="lazy"
+                  className="h-15 w-auto object-contain"
+                />
               </div>
-              <div className="flex justify-between items-start">
+              <div className="flex justify-between items-start pb-3">
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <AccessTimeIcon sx={{ fontSize: 16, color: headerFontColor }} />
-                    <span 
-                      className="text-base font-bold tracking-tight leading-none"
-                      style={{ color: headerFontColor }}
-                    >
-                      {currentLocation.time}
-                    </span>
-                  </div>
                   <button
                     type="button"
                     data-lenis-prevent
@@ -491,7 +352,7 @@ const MainLocationHeader = ({
                     onClick={() => {
                       setIsLocationOpen(true);
                     }}
-                    className="flex items-center gap-1 text-slate-800 cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
+                    className="flex items-center gap-1 text-white hover:text-white/80 cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
                     <LocationOnIcon sx={{ fontSize: 14, color: headerFontColor }} />
                     <div 
                       className="text-[10px] font-medium leading-tight max-w-[280px] truncate"
@@ -509,29 +370,8 @@ const MainLocationHeader = ({
               </div>
             </motion.div>
           </div>
-
-          {/* Search Bar (MOBILE ONLY) */}
-          <div className="relative z-10 mt-[1.5px] flex items-center gap-2 md:hidden">
-            <motion.div
-              onClick={handleSearchClick}
-              whileTap={{ scale: 0.98 }}
-              style={{ backgroundColor: searchBarBg }}
-              className="flex-1 rounded-[10px] px-3 h-10 shadow-md flex items-center border border-white/50 transition-all duration-200 focus-within:ring-2 focus-within:ring-brand-400/60 cursor-pointer">
-              <SearchIcon sx={{ color: "#000000", fontSize: 18 }} />
-              <input
-                type="text"
-                placeholder={searchPlaceholder || "Search Products..."}
-                readOnly
-                className="flex-1 bg-transparent border-none outline-none pl-2 text-slate-800 font-semibold placeholder:text-black text-[14px] cursor-pointer"
-              />
-              <div className="flex items-center gap-2 border-l border-slate-100 pl-2.5">
-                <MicIcon sx={{ color: "#000000", fontSize: 18 }} />
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Categories Navigation - Smooth Collapse */}
-          {categories.length > 0 && (
+ {/* Categories Navigation - Smooth Collapse */}
+          {/* {categories.length > 0 && (
             <motion.div
               layout
               transition={{
@@ -565,11 +405,17 @@ const MainLocationHeader = ({
                 );
               })}
             </motion.div>
-          )}
+          )} */}
+
 
           {/* Background Decorative patterns */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none overflow-hidden" />
         </motion.div>
+
+ {/* Search bar */}
+      <div className="py-4">
+        <PageSearchBar />
+      </div>
       </div>
 
       <LocationDrawer

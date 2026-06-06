@@ -102,8 +102,18 @@ export const getCategories = async (req, res) => {
         query.parentId = parentId;
       }
 
+      const sortBy = req.query.sortBy || "name-asc";
+      let sortQuery = { name: 1 };
+      if (sortBy === "newest") {
+        sortQuery = { createdAt: -1, _id: -1 };
+      } else if (sortBy === "oldest") {
+        sortQuery = { createdAt: 1, _id: 1 };
+      } else if (sortBy === "name-desc") {
+        sortQuery = { name: -1 };
+      }
+
       const [items, total] = await Promise.all([
-        Category.find(query).sort({ name: 1 }).skip(skip).limit(limit).lean(),
+        Category.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
         Category.countDocuments(query),
       ]);
       return handleResponse(res, 200, "Categories fetched successfully", {
@@ -142,7 +152,7 @@ export const getCategories = async (req, res) => {
 export const createCategory = async (req, res) => {
   try {
     const categoryData = {};
-    const allowedKeys = ["name", "slug", "description", "type", "parentId", "status", "iconId", "headerColor", "headerFontColor", "headerIconColor", "adminCommission", "adminCommissionType", "adminCommissionValue", "handlingFees", "handlingFeeType", "handlingFeeValue"];
+    const allowedKeys = ["name", "slug", "description", "type", "parentId", "status", "iconId", "icon", "headerColor", "headerFontColor", "headerIconColor", "adminCommission", "adminCommissionType", "adminCommissionValue", "handlingFees", "handlingFeeType", "handlingFeeValue"];
     
     // Strict Whitelisting and Sanitization
     for (const key of allowedKeys) {
@@ -156,22 +166,40 @@ export const createCategory = async (req, res) => {
       }
     }
     
-    // Handle Images
-    if (req.file) {
+    // Handle Custom Image file upload
+    const imageFile = req.files && req.files.image && req.files.image[0];
+    if (imageFile) {
       try {
-        const url = await uploadToCloudinary(req.file.buffer, "categories", {
-          mimeType: req.file.mimetype,
+        const url = await uploadToCloudinary(imageFile.buffer, "categories", {
+          mimeType: imageFile.mimetype,
           resourceType: "image",
         });
         categoryData.image = url;
       } catch (err) {
-        console.error("Cloudinary upload failed for category:", err);
+        console.error("Cloudinary upload failed for category image:", err);
       }
     } else if (typeof req.body.image === 'string' && req.body.image.startsWith('http')) {
       categoryData.image = req.body.image;
     } else {
-       // FORCED FIX: Ensure no phantom object remains
        delete categoryData.image; 
+    }
+
+    // Handle Custom Icon file upload
+    const iconFile = req.files && req.files.icon && req.files.icon[0];
+    if (iconFile) {
+      try {
+        const url = await uploadToCloudinary(iconFile.buffer, "categories", {
+          mimeType: iconFile.mimetype,
+          resourceType: "image",
+        });
+        categoryData.icon = url;
+      } catch (err) {
+        console.error("Cloudinary upload failed for category custom icon:", err);
+      }
+    } else if (typeof req.body.icon === 'string' && req.body.icon.startsWith('http')) {
+      categoryData.icon = req.body.icon;
+    } else {
+       delete categoryData.icon;
     }
 
     // Explicitly validate Parent ID hierarchy
@@ -223,7 +251,7 @@ export const updateCategory = async (req, res) => {
     }
 
     const categoryData = {};
-    const allowedKeys = ["name", "slug", "description", "type", "parentId", "status", "iconId", "headerColor", "headerFontColor", "headerIconColor", "adminCommission", "adminCommissionType", "adminCommissionValue", "handlingFees", "handlingFeeType", "handlingFeeValue"];
+    const allowedKeys = ["name", "slug", "description", "type", "parentId", "status", "iconId", "icon", "headerColor", "headerFontColor", "headerIconColor", "adminCommission", "adminCommissionType", "adminCommissionValue", "handlingFees", "handlingFeeType", "handlingFeeValue"];
     
     for (const key of allowedKeys) {
       if (Object.prototype.hasOwnProperty.call(req.body, key)) {
@@ -235,23 +263,46 @@ export const updateCategory = async (req, res) => {
       }
     }
 
-    if (req.file) {
+    // Handle Custom Image file upload
+    const imageFile = req.files && req.files.image && req.files.image[0];
+    if (imageFile) {
       try {
-        const url = await uploadToCloudinary(req.file.buffer, "categories", {
-          mimeType: req.file.mimetype,
+        const url = await uploadToCloudinary(imageFile.buffer, "categories", {
+          mimeType: imageFile.mimetype,
           resourceType: "image",
         });
         categoryData.image = url;
       } catch (err) {
-        console.error("Cloudinary upload failed for category update:", err);
+        console.error("Cloudinary upload failed for category image update:", err);
         return handleResponse(res, 400, `Image update failed: ${err.message}`);
       }
     } else if (typeof req.body.image === 'string' && req.body.image.startsWith('http')) {
       categoryData.image = req.body.image;
     } else if (req.body.image === "") {
-        categoryData.image = "";
+      categoryData.image = "";
     } else {
-        if (req.body.image && typeof req.body.image === 'object') delete categoryData.image;
+      if (req.body.image && typeof req.body.image === 'object') delete categoryData.image;
+    }
+
+    // Handle Custom Icon file upload
+    const iconFile = req.files && req.files.icon && req.files.icon[0];
+    if (iconFile) {
+      try {
+        const url = await uploadToCloudinary(iconFile.buffer, "categories", {
+          mimeType: iconFile.mimetype,
+          resourceType: "image",
+        });
+        categoryData.icon = url;
+      } catch (err) {
+        console.error("Cloudinary upload failed for category custom icon update:", err);
+        return handleResponse(res, 400, `Custom icon update failed: ${err.message}`);
+      }
+    } else if (typeof req.body.icon === 'string' && req.body.icon.startsWith('http')) {
+      categoryData.icon = req.body.icon;
+    } else if (req.body.icon === "") {
+      categoryData.icon = "";
+    } else {
+      if (req.body.icon && typeof req.body.icon === 'object') delete categoryData.icon;
     }
 
     const existing = await Category.findById(id).select("type parentId").lean();

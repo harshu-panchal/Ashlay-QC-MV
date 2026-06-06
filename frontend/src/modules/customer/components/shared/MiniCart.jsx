@@ -17,6 +17,7 @@ const MiniCart = () => {
 
     // Hide MiniCart on checkout page, order details page, profile page, wallet, transactions, wishlist, addresses, support, privacy, and about page
     const isCheckoutPage = path === '/checkout';
+    const isCartPage = path === '/cart';
     const isOrderDetailsPage = path.startsWith('/orders');
     const isProfilePage = path === '/profile';
     const isWalletPage = path === '/wallet';
@@ -29,13 +30,12 @@ const MiniCart = () => {
 
     return (
         <AnimatePresence>
-            {cart.length > 0 && !isCheckoutPage && !isOrderDetailsPage && !isProfilePage && !isWalletPage && !isTransactionsPage && !isWishlistPage && !isAddressesPage && !isSupportPage && !isPrivacyPage && !isAboutPage && (
+            {cart.length > 0 && !isCheckoutPage && !isCartPage && !isOrderDetailsPage && !isProfilePage && !isWalletPage && !isTransactionsPage && !isWishlistPage && !isAddressesPage && !isSupportPage && !isPrivacyPage && !isAboutPage && (
                 <div
                     key="mini-cart-wrapper"
                     id="mini-cart-target"
                     className="fixed bottom-[80px] md:bottom-[calc(6rem-20px)] left-0 right-0 flex justify-center z-[55] pointer-events-none px-4"
                 >
-
                     <motion.div
                         initial={{ y: 50, opacity: 0, scale: 0.9 }}
                         animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -43,9 +43,9 @@ const MiniCart = () => {
                         className="w-full max-w-[148px] pointer-events-auto"
                     >
                         <Link
-                            to="/checkout"
+                            to="/cart"
                             style={{
-                                backgroundColor: "var(--customer-mini-cart-color, var(--primary))",
+                                backgroundColor: "var(--customer-mini-cart-color, #061939)",
                             }}
                             className="flex items-center gap-2 text-white py-1.5 px-2.5 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.22)] hover:scale-[1.02] active:scale-95 transition-all group border border-white/10 relative overflow-hidden"
                         >
@@ -66,9 +66,9 @@ const MiniCart = () => {
                             </div>
 
                             {/* Text Section */}
-                            <div className="flex-1 flex flex-col justify-center min-w-0">
-                                <h4 className="text-[12px] font-black leading-tight truncate">View cart</h4>
-                                <p className="text-[9px] opacity-90 font-bold leading-tight">{cartCount} {cartCount === 1 ? 'item' : 'items'}</p>
+                            <div className="flex-1 flex flex-col justify-center min-w-0 font-inter">
+                                <h4 className="text-[12px] font-[800] leading-tight truncate">View cart</h4>
+                                <p className="text-[9px] opacity-90 font-[700] leading-tight">{cartCount} {cartCount === 1 ? 'item' : 'items'}</p>
                             </div>
 
                             {/* Arrow Icon in circle */}
@@ -102,4 +102,3 @@ const MiniCart = () => {
 };
 
 export default MiniCart;
-
