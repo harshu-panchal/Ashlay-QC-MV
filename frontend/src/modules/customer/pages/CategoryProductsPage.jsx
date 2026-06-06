@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, Heart, Search, Minus, Plus } from 'lucide-react';
+import { ChevronLeft, Heart, Search, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -28,7 +28,7 @@ const CategoryProductsPage = () => {
     const { isOpen: isProductDetailOpen } = useProductDetail();
     const [selectedSubCategory, setSelectedSubCategory] = useState(initialSubcategoryId);
     const [category, setCategory] = useState(null);
-    const [subCategories, setSubCategories] = useState([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png' }]);
+    const [subCategories, setSubCategories] = useState([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/1170/1170678.png' }]);
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [noServiceData, setNoServiceData] = useState(null);
@@ -79,7 +79,7 @@ const CategoryProductsPage = () => {
                     price: p.salePrice || p.price,
                     originalPrice: p.price,
                     weight: p.weight || "1 unit",
-                    deliveryTime: "8-15 mins"
+                    deliveryTime: p.deliveryTime
                 }));
                 setProducts(Array.isArray(formattedProds) ? formattedProds : []);
             } else {
@@ -104,7 +104,7 @@ const CategoryProductsPage = () => {
                         name: s.name,
                         icon: s.image || 'https://cdn-icons-png.flaticon.com/128/2321/2321801.png'
                     }));
-                    setSubCategories([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png' }, ...subs]);
+                    setSubCategories([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/1170/1170678.png' }, ...subs]);
                 }
             }
         } catch (error) {
@@ -134,7 +134,7 @@ const CategoryProductsPage = () => {
     }, [safeProducts]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-white max-w-md mx-auto relative font-sans">
+        <div className="flex flex-col min-h-screen bg-white max-w-md mx-auto relative font-inter">
             {/* Header */}
             <header className={cn(
                 "sticky top-0 z-50 bg-white border-b border-gray-50 px-4 py-4 flex items-center justify-between",
@@ -148,7 +148,7 @@ const CategoryProductsPage = () => {
                         <ChevronLeft size={24} className="text-gray-900" />
                     </button>
                     <h1 className="text-[18px] font-bold text-gray-800 tracking-tight">
-                        {category?.name || catId}
+                        {category?.name || (location.state?.categoryName || "Category")}
                     </h1>
                 </div>
 
@@ -188,19 +188,23 @@ const CategoryProductsPage = () => {
                                     className={cn(
                                         "flex flex-col items-center py-4 px-1 gap-2 transition-all relative border-l-4",
                                         selectedSubCategory === cat.id
-                                            ? "bg-[#F7FCF5] border-primary"
+                                            ? "bg-[#061939]/5 border-[#061939]"
                                             : "border-transparent hover:bg-gray-50"
                                     )}
                                 >
                                     <div className={cn(
                                         "w-14 h-14 rounded-2xl flex items-center justify-center p-1.5 transition-all duration-300",
-                                        selectedSubCategory === cat.id ? "scale-110" : "opacity-100"
+                                        selectedSubCategory === cat.id ? "scale-110 bg-[#061939]/10" : "opacity-100 bg-slate-50"
                                     )}>
-                                        <img src={applyCloudinaryTransform(cat.icon)} alt={cat.name} loading="lazy" className="w-full h-full object-contain" />
+                                        {cat.id === 'all' ? (
+                                            <ShoppingCart className={cn("w-6 h-6", selectedSubCategory === cat.id ? "text-[#061939]" : "text-gray-500")} />
+                                        ) : (
+                                            <img src={applyCloudinaryTransform(cat.icon)} alt={cat.name} loading="lazy" className="w-full h-full object-contain" />
+                                        )}
                                     </div>
                                     <span className={cn(
-                                        "text-[10px] text-center font-bold font-sans leading-tight px-1",
-                                        selectedSubCategory === cat.id ? "text-primary" : "text-gray-600"
+                                        "text-[10px] text-center font-bold font-inter leading-tight px-1",
+                                        selectedSubCategory === cat.id ? "text-[#061939]" : "text-gray-500"
                                     )}>
                                         {cat.name}
                                     </span>

@@ -48,6 +48,7 @@ const CustomerRoutes = () => {
 
                             {/* Protected Customer Routes */}
                             <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+                            <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
                             <Route path="orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
                             <Route path="orders/:orderId" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
                             <Route path="transactions" element={<ProtectedRoute><OrderTransactionsPage /></ProtectedRoute>} />
