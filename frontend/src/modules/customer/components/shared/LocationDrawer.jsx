@@ -367,7 +367,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 <div className="absolute left-4 top-1/2 -translate-y-1/2">
                   <Search
                     size={20}
-                    className="text-[#1A1A1A]/40 group-focus-within:text-primary transition-colors"
+                    className="text-[#1A1A1A]/40 group-focus-within:text-[#061939] transition-colors"
                   />
                 </div>
                 <input
@@ -382,7 +382,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                   onBlur={() => {
                     window.setTimeout(() => setIsSearchFocused(false), 120);
                   }}
-                  className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 text-sm font-semibold placeholder:text-[#1A1A1A]/40 shadow-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                  className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 text-sm font-semibold placeholder:text-[#1A1A1A]/40 shadow-sm focus:ring-2 focus:ring-[#061939]/20 transition-all outline-none"
                 />
               </div>
               <p className="text-[11px] font-semibold text-slate-400 px-1">
@@ -410,7 +410,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                       <div className="flex items-start gap-3">
                         <MapPin
                           size={16}
-                          className="text-primary mt-0.5 flex-shrink-0"
+                          className="text-[#061939] mt-0.5 flex-shrink-0"
                         />
                         <div className="min-w-0">
                           <p className="text-[13px] font-bold text-slate-800 truncate">
@@ -448,42 +448,42 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                 data-lenis-prevent
                 data-lenis-prevent-touch
                 onClick={handleSelectCurrentLocation}
-                className="flex items-center gap-4 bg-white p-3 rounded-2xl hover:bg-slate-50 transition-colors group text-left shadow-sm w-full">
-                <div className="h-10 w-10 flex items-center justify-center text-primary">
+                className="flex items-center gap-4 bg-white p-3.5 rounded-2xl hover:bg-[#061939]/5 transition-all duration-300 group text-left shadow-sm w-full border border-slate-100/50">
+                <div className="h-10 w-10 rounded-xl bg-[#061939]/5 flex items-center justify-center text-[#061939] group-hover:bg-[#061939]/10 transition-colors">
                   <MapPin
-                    size={24}
-                    className="group-hover:scale-110 transition-transform"
+                    size={22}
+                    className="group-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
                 <div className="flex-1 flex items-center gap-2 min-w-0">
-                  <h3 className="font-bold text-primary text-[14px] whitespace-nowrap">
+                  <h3 className="font-bold text-[#061939] text-[14.5px] whitespace-nowrap tracking-tight">
                     {isFetchingLocation
                       ? "Detecting..."
                       : "Use current location"}
                   </h3>
-                  <p className="text-[12px] text-slate-400 font-medium truncate opacity-60">
+                  <p className="text-[12px] text-slate-400 font-medium truncate opacity-70">
                     ({currentLocation.name})
                   </p>
                 </div>
-                <ChevronRight size={16} className="text-slate-300 flex-shrink-0" />
+                <ChevronRight size={16} className="text-slate-300 group-hover:text-[#061939] group-hover:translate-x-0.5 transition-all duration-300 flex-shrink-0" />
               </button>
 
               {/* Add Address */}
               <button
                 onClick={handleAddAddress}
-                className="flex items-center gap-4 bg-white p-3 rounded-2xl hover:bg-slate-50 transition-colors group text-left shadow-sm">
-                <div className="h-10 w-10 flex items-center justify-center text-primary">
+                className="flex items-center gap-4 bg-white p-3.5 rounded-2xl hover:bg-[#061939]/5 transition-all duration-300 group text-left shadow-sm border border-slate-100/50">
+                <div className="h-10 w-10 rounded-xl bg-[#061939]/5 flex items-center justify-center text-[#061939] group-hover:bg-[#061939]/10 transition-colors">
                   <Plus
-                    size={24}
-                    className="group-hover:rotate-90 transition-transform"
+                    size={22}
+                    className="group-hover:rotate-90 transition-transform duration-300"
                   />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-primary text-[15px]">
+                  <h3 className="font-bold text-[#061939] text-[14.5px] tracking-tight">
                     Add new address
                   </h3>
                 </div>
-                <ChevronRight size={20} className="text-slate-300" />
+                <ChevronRight size={16} className="text-slate-300 group-hover:text-[#061939] group-hover:translate-x-0.5 transition-all duration-300" />
               </button>
 
               {/* Saved Addresses Section */}
@@ -538,7 +538,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                       {/* Selection Glow */}
                       {(addr.address === currentLocation.name ||
                         addr.isCurrent) && (
-                        <div className="absolute top-0 right-0 h-1 w-24 bg-gradient-to-l from-primary to-transparent opacity-50" />
+                        <div className="absolute top-0 right-0 h-1 w-24 bg-gradient-to-l from-[#061939] to-transparent opacity-50" />
                       )}
                     </div>
                   ))}

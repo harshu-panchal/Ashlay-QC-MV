@@ -9,11 +9,11 @@ const settingSchema = new mongoose.Schema(
         // General
         appName: {
             type: String,
-            default: "Appzeto Quick Commerce",
+            default: "Ashlay",
         },
         supportEmail: {
             type: String,
-            default: "support@appzeto.com",
+            default: "support@ashlay.com",
         },
         supportPhone: {
             type: String,
@@ -37,11 +37,11 @@ const settingSchema = new mongoose.Schema(
         faviconUrl: String,
         primaryColor: {
             type: String,
-            default: "#0ea5e9",
+            default: "#061939",
         },
         secondaryColor: {
             type: String,
-            default: "#64748b",
+            default: "#F7F7F7",
         },
 
         // Legal
