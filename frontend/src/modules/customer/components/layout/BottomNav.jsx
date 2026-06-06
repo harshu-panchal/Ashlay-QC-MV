@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, ShoppingBag, User } from 'lucide-react';
+import { Home, LayoutGrid, Heart, ShoppingBag, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
     { label: 'Home', icon: Home, path: '/' },
-    { label: 'Category', icon: LayoutGrid, path: '/categories' },
+    { label: 'Categories', icon: LayoutGrid, path: '/categories' },
+    { label: 'Wishlist', icon: Heart, path: '/wishlist' },
     { label: 'Orders', icon: ShoppingBag, path: '/orders' },
     { label: 'Profile', icon: User, path: '/profile' },
 ];
@@ -25,10 +26,6 @@ const BottomNav = () => {
                         to={item.path}
                         className="flex-1 flex flex-col items-center justify-center h-full relative group transition-all"
                     >
-                        {isActive && (
-                            <div className="absolute -inset-y-2 -inset-x-4 bg-primary/5 rounded-[20px] -z-10 transition-opacity duration-300" />
-                        )}
-
                         <div className="flex flex-col items-center justify-center relative">
                             <div
                                 className={cn(
@@ -38,10 +35,11 @@ const BottomNav = () => {
                             >
                                 <item.icon
                                     size={24}
-                                    strokeWidth={isActive ? 2.5 : 2}
+                                    strokeWidth={2}
+                                    fill={isActive ? "#061939" : "none"}
                                     className={cn(
                                         "transition-colors duration-300",
-                                        isActive ? "text-primary" : "text-gray-400"
+                                        isActive ? "text-[#061939]" : "text-gray-400"
                                     )}
                                 />
                             </div>
@@ -49,18 +47,13 @@ const BottomNav = () => {
                             <span
                                 className={cn(
                                     "text-[10px] font-bold tracking-tight mt-1 transition-all duration-300",
-                                    isActive ? "text-primary" : "text-gray-400"
+                                    isActive ? "text-[#061939]" : "text-gray-400"
                                 )}
                                 style={{ transform: isActive ? "translateY(1px)" : "translateY(0)" }}
                             >
                                 {item.label}
                             </span>
                         </div>
-
-                        {/* Top Accent Line for Active State */}
-                        {isActive && (
-                            <div className="absolute -top-[1px] w-8 h-[3px] bg-primary rounded-full transition-opacity duration-300" />
-                        )}
                     </Link>
                 );
             })}
