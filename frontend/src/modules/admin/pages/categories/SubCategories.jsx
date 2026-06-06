@@ -56,12 +56,13 @@ const SubCategories = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
 
+  const [total, setTotal] = useState(0);
+
   useEffect(() => {
-    fetchCategories();
+    fetchAuxiliaryCategories();
   }, []);
 
-  const fetchCategories = async () => {
-    setIsLoading(true);
+  const fetchAuxiliaryCategories = async () => {
     try {
       const res = await adminApi.getCategories();
       if (res.data.success) {
@@ -74,12 +75,43 @@ const SubCategories = () => {
             : Array.isArray(payload?.items)
               ? payload.items
               : [];
-        setCategories(allCats.filter((c) => c.type === "subcategory"));
         setLevel2Categories(allCats.filter((c) => c.type === "category"));
         setHeaderCategories(allCats.filter((c) => c.type === "header"));
       }
     } catch (error) {
-      toast.error("Failed to fetch categories");
+      console.error("Failed to fetch auxiliary categories", error);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCategories(page);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, filterLevel2, sortBy, page, pageSize]);
+
+  const fetchCategories = async (requestedPage = 1) => {
+    setIsLoading(true);
+    try {
+      const params = {
+        type: "subcategory",
+        page: requestedPage,
+        limit: pageSize,
+        sortBy,
+      };
+      if (searchTerm) params.search = searchTerm;
+      if (filterLevel2 && filterLevel2 !== "all") params.parentId = filterLevel2;
+
+      const res = await adminApi.getCategories(params);
+      if (res.data.success) {
+        const payload = res.data.result || {};
+        const list = Array.isArray(payload.items) ? payload.items : [];
+        setCategories(list);
+        setTotal(typeof payload.total === "number" ? payload.total : list.length);
+        setPage(typeof payload.page === "number" ? payload.page : requestedPage);
+      }
+    } catch (error) {
+      toast.error("Failed to fetch subcategories");
     } finally {
       setIsLoading(false);
     }
@@ -99,54 +131,12 @@ const SubCategories = () => {
     };
   };
 
-  const filteredCategories = useMemo(() => {
-    const filtered = categories.filter((cat) => {
-      const matchesSearch = cat.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesParent =
-        filterLevel2 === "all" ||
-        (cat.parentId && cat.parentId._id === filterLevel2) ||
-        cat.parentId === filterLevel2;
-      return matchesSearch && matchesParent;
-    });
-
-    return [...filtered].sort((a, b) => {
-      const aName = String(a.name || "").toLowerCase();
-      const bName = String(b.name || "").toLowerCase();
-      const aTime = new Date(a.createdAt || 0).getTime();
-      const bTime = new Date(b.createdAt || 0).getTime();
-
-      switch (sortBy) {
-        case "oldest":
-          return aTime - bTime;
-        case "name-asc":
-          return aName.localeCompare(bName);
-        case "name-desc":
-          return bName.localeCompare(aName);
-        case "newest":
-        default:
-          return bTime - aTime;
-      }
-    });
-  }, [categories, searchTerm, filterLevel2, sortBy]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / pageSize));
-
-  const paginatedCategories = useMemo(() => {
-    const startIndex = (page - 1) * pageSize;
-    return filteredCategories.slice(startIndex, startIndex + pageSize);
-  }, [filteredCategories, page, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const paginatedCategories = categories;
 
   useEffect(() => {
     setPage(1);
   }, [searchTerm, filterLevel2, sortBy, pageSize]);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
 
   const sortedParentCategoryOptions = useMemo(() => {
     return [...level2Categories]
@@ -204,7 +194,7 @@ const SubCategories = () => {
       }
       setIsAddModalOpen(false);
       setEditingItem(null);
-      fetchCategories();
+      fetchCategories(page);
     } catch (error) {
       console.error(error);
       toast.error(editingItem ? "Failed to update" : "Failed to create");
@@ -221,7 +211,7 @@ const SubCategories = () => {
       toast.success("Subcategory deleted");
       setIsDeleteModalOpen(false);
       setDeleteTarget(null);
-      fetchCategories();
+      fetchCategories(page);
     } catch (error) {
       toast.error("Failed to delete subcategory");
     }
@@ -289,7 +279,7 @@ const SubCategories = () => {
         );
         toast.success("Subcategories deleted");
         setSelectedItems([]);
-        fetchCategories();
+        fetchCategories(page);
       } catch (error) {
         console.error("Bulk delete error:", error);
         toast.error("Failed to delete some subcategories");
@@ -398,7 +388,7 @@ const SubCategories = () => {
                     Loading...
                   </td>
                 </tr>
-              ) : filteredCategories.length === 0 ? (
+              ) : paginatedCategories.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-8 text-gray-500">
                     No subcategories found
@@ -481,7 +471,7 @@ const SubCategories = () => {
           <Pagination
             page={page}
             totalPages={totalPages}
-            total={filteredCategories.length}
+            total={total}
             pageSize={pageSize}
             onPageChange={setPage}
             onPageSizeChange={(size) => {

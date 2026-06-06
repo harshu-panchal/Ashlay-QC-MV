@@ -63,7 +63,7 @@ const SlideToPay = ({
 
     return (
         <div
-            className="relative h-16 w-full rounded-full overflow-hidden select-none touch-none bg-linear-to-r from-primary via-primary to-primary shadow-[0_18px_45px_rgba(4,120,87,0.35)] border border-white/10"
+            className="relative h-16 w-full rounded-full overflow-hidden select-none touch-none bg-gradient-to-r from-[#061939] via-[#0E2C5E] to-[#061939] shadow-[0_12px_30px_rgba(6,25,57,0.25)] border border-white/10"
             ref={(el) => el && setContainerWidth(el.offsetWidth)}
         >
             {/* Progress Fill */}
@@ -78,7 +78,7 @@ const SlideToPay = ({
                 style={{ opacity: shimmerOpacity }}
             >
                 <motion.div
-                    className="absolute inset-y-0 -inset-x-1 bg-linear-to-r from-transparent via-white/35 to-transparent skew-x-[-20deg]"
+                    className="absolute inset-y-0 -inset-x-1 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-[-20deg]"
                     initial={{ x: "-100%" }}
                     animate={{ x: "100%" }}
                     transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
@@ -91,7 +91,7 @@ const SlideToPay = ({
                 style={{ opacity: textOpacity }}
             >
                 <span className="text-white font-black text-sm md:text-[13px] tracking-[0.25em] uppercase flex items-center gap-2">
-                    {text} <span className="text-white/40">|</span> <span className="text-brand-50 font-extrabold">₹{amount}</span>
+                    {text} <span className="text-white/40">|</span> <span className="text-[#F4F7FD] font-extrabold">₹{amount}</span>
                 </span>
 
                 <div className="absolute right-4 animate-pulse text-white/70">
@@ -112,7 +112,7 @@ const SlideToPay = ({
 
             {/* Draggable Circle */}
             <motion.div
-                className="absolute left-1 top-1 bottom-1 w-14 h-14 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 shadow-[0_6px_18px_rgba(15,118,110,0.35)] border border-brand-100"
+                className="absolute left-1 top-1 bottom-1 w-14 h-14 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 shadow-[0_6px_18px_rgba(6,25,57,0.15)] border border-slate-100"
                 drag={!isCompleted && !isLoading ? "x" : false}
                 dragConstraints={{ left: 0, right: maxDrag }}
                 dragElastic={0.05}
@@ -125,18 +125,18 @@ const SlideToPay = ({
             >
                 {isLoading || isCompleted ? (
                     <motion.div
-                        className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        className="h-6 w-6 border-2 border-[#061939] border-t-transparent rounded-full animate-spin"
                     />
                 ) : (
                     <motion.div
                         className="relative w-full h-full flex items-center justify-center"
                         style={{ rotate }}
                     >
-                        <motion.div className="text-primary" style={{ opacity: arrowsOpacity }}>
+                        <motion.div className="text-[#061939]" style={{ opacity: arrowsOpacity }}>
                             <ChevronRight size={28} strokeWidth={3} />
                         </motion.div>
                         <motion.div
-                            className="absolute inset-0 flex items-center justify-center text-primary"
+                            className="absolute inset-0 flex items-center justify-center text-[#061939]"
                             style={{ opacity: checkOpacity }}
                         >
                             <Check size={24} strokeWidth={3} />
@@ -149,5 +149,3 @@ const SlideToPay = ({
 };
 
 export default SlideToPay;
-
-
