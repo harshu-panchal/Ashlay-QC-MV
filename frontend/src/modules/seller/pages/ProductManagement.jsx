@@ -29,6 +29,89 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { sellerApi } from "../services/sellerApi";
 import { toast } from "sonner";
 import Pagination from "@shared/components/ui/Pagination";
+const RichTextEditor = ({ value, onChange }) => {
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || "";
+    }
+  }, [value]);
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const execCommand = (e, command, val = null) => {
+    e.preventDefault();
+    document.execCommand(command, false, val);
+    handleInput();
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
+
+  return (
+    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm ring-1 ring-slate-100 focus-within:ring-2 focus-within:ring-primary/10 transition-all flex flex-col">
+      <div className="flex items-center gap-1 p-2 bg-slate-50 border-b border-slate-100 select-none flex-wrap">
+        <button
+          type="button"
+          onMouseDown={(e) => execCommand(e, "bold")}
+          className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-700 font-extrabold text-sm transition-colors"
+          title="Bold (Ctrl+B)"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => execCommand(e, "italic")}
+          className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-700 italic font-serif text-sm transition-colors"
+          title="Italic (Ctrl+I)"
+        >
+          I
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => execCommand(e, "insertUnorderedList")}
+          className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-700 text-base font-bold transition-colors"
+          title="Bullet List"
+        >
+          •
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => execCommand(e, "insertOrderedList")}
+          className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-700 text-[10px] font-bold transition-colors"
+          title="Numbered List"
+        >
+          1.
+        </button>
+        <div className="w-px h-5 bg-slate-200 mx-1" />
+        <button
+          type="button"
+          onMouseDown={(e) => execCommand(e, "removeFormat")}
+          className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 text-xs font-semibold transition-colors"
+          title="Clear Format"
+        >
+          Tx
+        </button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        onBlur={handleInput}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        className="w-full px-4 py-3 min-h-[160px] max-h-[260px] overflow-y-auto outline-none text-sm text-slate-700 font-normal focus:ring-0 custom-scrollbar whitespace-pre-wrap select-text edit-rich-text"
+        style={{ minHeight: "160px" }}
+      />
+    </div>
+  );
+};
+
 
 const ProductManagement = () => {
   const navigate = useNavigate();
@@ -1031,18 +1114,14 @@ const ProductManagement = () => {
                         <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
                           About this item
                         </label>
-                        <textarea
+                        <RichTextEditor
                           value={formData.description}
-                          onChange={(e) =>
+                          onChange={(val) =>
                             setFormData({
                               ...formData,
-                              description: e.target.value,
+                              description: val,
                             })
                           }
-                          onWheel={(e) => e.stopPropagation()}
-                          onTouchMove={(e) => e.stopPropagation()}
-                          className="w-full px-4 py-3 bg-slate-100 border-none rounded-2xl text-sm font-semibold min-h-[160px] max-h-[260px] outline-none resize-none overflow-y-auto custom-scrollbar"
-                          placeholder="Describe the item here..."
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

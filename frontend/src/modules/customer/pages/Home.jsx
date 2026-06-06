@@ -30,11 +30,7 @@ import { useSettings } from "@core/context/SettingsContext";
 import Lottie from "lottie-react";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 
-import {
-  MARQUEE_MESSAGES,
-  ICON_COMPONENTS,
-} from "../constants/homeConstants";
-import PromoMarquee from "../components/home/PromoMarquee";
+import { ICON_COMPONENTS } from "../constants/homeConstants";
 import QuickCategorySlider from "../components/home/QuickCategorySlider";
 import LowestPriceSection from "../components/home/LowestPriceSection";
 import OfferSections from "../components/home/OfferSections";
@@ -139,8 +135,8 @@ const ALL_CATEGORY = {
   icon: HomeIcon,
   theme: DEFAULT_CATEGORY_THEME,
   headerColor: "#0e7490",
-  headerFontColor: "#111111",
-  headerIconColor: "#111111",
+  headerFontColor: "#ffffff",
+  headerIconColor: "#ffffff",
   banner: {
     title: "HOUSEFULL",
     subtitle: "SALE",
@@ -157,6 +153,7 @@ const EMPTY_HERO_CONFIG = {
 const homePageDataCache = new Map();
 const headerSectionsMemoryCache = {};
 const heroConfigMemoryCache = {};
+let staticConfigCache = null;
 
 const getHomePageDataCacheKey = (location) => {
   const lat = Number(location?.latitude);
@@ -215,7 +212,7 @@ const Home = () => {
 
   useEffect(() => {
     if (products.length === 0 && !isLoading) {
-      import("@/assets/lottie/animation.json").then((m) => setNoServiceData(m.default)).catch(() => {});
+      import("@/assets/lottie/animation.json").then((m) => setNoServiceData(m.default)).catch(() => { });
     }
   }, [products.length, isLoading]);
 
@@ -238,7 +235,7 @@ const Home = () => {
             const match = (data.formattedHeaders || []).find((h) => h._id === parsed.headerId);
             if (match) return match;
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!prev || prev._id === "all") return data.activeCategory || data.categories?.[0] || ALL_CATEGORY;
       return (data.categories || []).find((cat) => cat._id === prev._id) || data.activeCategory || prev;
@@ -252,6 +249,10 @@ const Home = () => {
       const cached = homePageDataCache.get(cacheKey);
       if (cached) {
         applyHomePageData(cached, { cacheKey, persist: false });
+        productsRef.current = cached.products || [];
+        if (cached.experienceSections?.length > 0) {
+          hydrateSelectedSectionProducts(cached.experienceSections);
+        }
         setIsLoading(false);
         return;
       }
@@ -264,10 +265,25 @@ const Home = () => {
         productParams.lat = currentLocation.latitude;
         productParams.lng = currentLocation.longitude;
       }
-      const [catRes, prodRes, expRes, sectionsRes] = await Promise.all([
-        customerApi.getCategories(),
+
+      let catRes, expRes;
+      if (staticConfigCache && !forceRefresh) {
+        catRes = staticConfigCache.catRes;
+        expRes = staticConfigCache.expRes;
+      } else {
+        const [cRes, eRes] = await Promise.all([
+          customerApi.getCategories(),
+          customerApi.getExperienceSections({ pageType: "home" }).catch(() => null),
+        ]);
+        catRes = cRes;
+        expRes = eRes;
+        if (cRes?.data?.success) {
+          staticConfigCache = { catRes: cRes, expRes: eRes };
+        }
+      }
+
+      const [prodRes, sectionsRes] = await Promise.all([
         hasValidLocation ? customerApi.getProducts(productParams) : Promise.resolve({ data: { success: true, result: { items: [] } } }),
-        customerApi.getExperienceSections({ pageType: "home" }).catch(() => null),
         hasValidLocation ? customerApi.getOfferSections({ lat: currentLocation.latitude, lng: currentLocation.longitude }).catch(() => ({ data: {} })) : Promise.resolve({ data: { results: [] } }),
       ]);
       const nextHomeData = {
@@ -300,17 +316,41 @@ const Home = () => {
         const mergedAllCategory = allHeaderFromAdmin ? { ...ALL_CATEGORY, headerColor: allHeaderFromAdmin.headerColor || ALL_CATEGORY.headerColor, headerFontColor: allHeaderFromAdmin.headerFontColor || ALL_CATEGORY.headerFontColor, headerIconColor: allHeaderFromAdmin.headerIconColor || ALL_CATEGORY.headerIconColor, icon: allHeaderFromAdmin.icon || ALL_CATEGORY.icon } : ALL_CATEGORY;
         nextHomeData.categories = [mergedAllCategory, ...formattedHeaders.filter((h) => !((h.slug?.toLowerCase() === "all") || (h.name?.toLowerCase() === "all")))];
         nextHomeData.activeCategory = mergedAllCategory;
-        nextHomeData.quickCategories = dbCats.filter((cat) => cat.type === "category").map((cat) => ({ id: cat._id, name: cat.name, image: cat.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" }));
+        nextHomeData.quickCategories = dbCats
+          .filter((cat) => cat.type === "category")
+          .sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return String(b._id || "").localeCompare(String(a._id || ""));
+          })
+          .map((cat) => ({
+            id: cat._id,
+            name: cat.name,
+            image: cat.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png",
+            iconId: cat.iconId,
+          }));
       }
       if (prodRes.data.success) {
         const rawResult = prodRes.data.result;
         const dbProds = Array.isArray(prodRes.data.results) ? prodRes.data.results : Array.isArray(rawResult?.items) ? rawResult.items : Array.isArray(rawResult) ? rawResult : [];
-        nextHomeData.products = dbProds.map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: "8-15 mins" }));
+        nextHomeData.products = dbProds
+          .sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return String(b._id || "").localeCompare(String(a._id || ""));
+          })
+          .map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: p.deliveryTime }));
       }
       if (expRes?.data?.success) nextHomeData.experienceSections = Array.isArray(expRes.data.result || expRes.data.results) ? (expRes.data.result || expRes.data.results) : [];
       const sectionsList = sectionsRes?.data?.results || sectionsRes?.data?.result || sectionsRes?.data;
       nextHomeData.offerSections = Array.isArray(sectionsList) ? sectionsList : [];
       applyHomePageData(nextHomeData, { cacheKey });
+      productsRef.current = nextHomeData.products;
+      if (nextHomeData.experienceSections?.length > 0) {
+        await hydrateSelectedSectionProducts(nextHomeData.experienceSections);
+      }
     } catch (error) { console.error("Error:", error); } finally { setIsLoading(false); }
   };
 
@@ -323,9 +363,9 @@ const Home = () => {
     try {
       const locationParams = Number.isFinite(currentLocation?.latitude) ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : undefined;
       const missingResults = await Promise.allSettled(missingIds.map((id) => customerApi.getProductById(id, locationParams)));
-      const fetchedMissing = missingResults.filter((r) => r.status === "fulfilled").flatMap((r) => { const p = r.value?.data?.result || r.value?.data?.results; return Array.isArray(p) ? p : (p ? [p] : []); }).map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: "8-15 mins" }));
+      const fetchedMissing = missingResults.filter((r) => r.status === "fulfilled").flatMap((r) => { const p = r.value?.data?.result || r.value?.data?.results; return Array.isArray(p) ? p : (p ? [p] : []); }).map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: p.deliveryTime }));
       if (fetchedMissing.length) setProducts((prev) => { const merged = [...prev]; const mergedIds = new Set(merged.map((p) => String(p?._id || p?.id || "").trim())); fetchedMissing.forEach((p) => { const key = String(p?._id || p?.id || "").trim(); if (!mergedIds.has(key)) { merged.push(p); mergedIds.add(key); } }); return merged; });
-    } catch (e) {}
+    } catch (e) { }
   };
 
   useEffect(() => { fetchData(); }, [currentLocation?.latitude, currentLocation?.longitude]);
@@ -385,7 +425,7 @@ const Home = () => {
   const productsById = useMemo(() => { const map = {}; products.forEach((p) => { map[p._id || p.id] = p; }); return map; }, [products]);
   const effectiveQuickCategories = useMemo(() => {
     const ids = heroConfig.categoryIds || [];
-    if (ids.length > 0) { const resolved = ids.map((id) => categoryMap[id]).filter(Boolean).map((c) => ({ id: c._id, name: c.name, image: c.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" })); if (resolved.length > 0) return resolved; }
+    if (ids.length > 0) { const resolved = ids.map((id) => categoryMap[id]).filter(Boolean).map((c) => ({ id: c._id, name: c.name, image: c.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png", iconId: c.iconId })); if (resolved.length > 0) return resolved; }
     return quickCategories;
   }, [heroConfig.categoryIds, categoryMap, quickCategories]);
 
@@ -409,47 +449,39 @@ const Home = () => {
   };
 
   return (
-    <div className={`min-h-screen pt-[190px] md:pt-[250px] bg-[#F5F7F8]`}>
+    <div className={`min-h-screen pt-0 bg-[#F7F7F7]`} style={{ fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       <div className={cn("contents", isProductDetailOpen && "hidden md:contents")}>
         <MainLocationHeader categories={categories} activeCategory={activeCategory} onCategorySelect={setActiveCategory} />
       </div>
 
-      <motion.div ref={heroRef} className="block md:hidden will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
-        <div className="relative w-full overflow-hidden">
-          {heroConfig.banners?.items?.length ? (
-            <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} fullWidth edgeToEdge />
-          ) : (
-            <div className="w-full h-[190px] bg-[#ecfeff] p-6 relative overflow-hidden flex items-center border-y border-primary/10 shadow-sm">
-              <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
-                <h4 className="text-2xl font-black text-[#1A1A1A] tracking-tight">Get <span className="text-primary">Products</span></h4>
-                <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide">Order now</button>
-              </div>
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mt-12 -mr-12" />
-            </div>
-          )}
-        </div>
-      </motion.div>
+      {heroConfig?.banners?.items?.length > 0 && (
+        <motion.div ref={heroRef} className="block md:hidden will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
+          <div className="relative w-full overflow-hidden px-3 pb-6">
+            <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} isHero={true} />
+          </div>
+        </motion.div>
+      )}
 
-      <PromoMarquee />
-      <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id) => navigate(`/category/${id}`)} />
+      <QuickCategorySlider categories={effectiveQuickCategories} onCategoryClick={(id, name) => navigate(`/category/${id}`, { state: { categoryName: name } })} />
 
       {products.length === 0 && !isLoading ? (
         <div className="flex flex-col items-center justify-center pt-12 pb-24 px-6">
           <div className="w-48 h-48 md:w-64 md:h-64 mb-6 opacity-80">{noServiceData && <Lottie animationData={noServiceData} loop={true} />}</div>
-          <h3 className="text-2xl md:text-3xl font-black text-slate-800 text-center uppercase tracking-tight">Service <span className="text-primary">Unavailable</span></h3>
+          <h3 className="text-2xl md:text-3xl font-black text-slate-800 text-center tracking-tight">Service <span className="text-primary">Unavailable</span></h3>
           <p className="text-slate-500 font-medium max-w-xs text-center mt-2 text-sm md:text-base opacity-70">Ah! We haven't reached your neighborhood yet.</p>
-          <button onClick={() => fetchData({ forceRefresh: true })} className="mt-8 px-8 py-3 bg-primary text-white font-bold rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg shadow-primary/20">Check Again</button>
+          <button onClick={() => fetchData({ forceRefresh: true })} className="mt-8 px-8 py-3 bg-primary text-black font-bold rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg shadow-primary/20">Check Again</button>
         </div>
       ) : (
         <>
           <LowestPriceSection products={products} onSeeAll={() => navigate("/category/all")} />
-          <OfferSections sections={offerSections} noServiceData={noServiceData} />
 
           {sectionsForRenderer.length > 0 && (
-            <div className="container mx-auto px-4 md:px-8 lg:px-[50px] py-10 md:py-16">
+            <div className="w-full mx-auto px-1 md:px-2 lg:px-3 pt-0 pb-14 md:pt-0 md:pb-20">
               <SectionRenderer sections={sectionsForRenderer} productsById={productsById} categoriesById={categoryMap} subcategoriesById={subcategoryMap} />
             </div>
           )}
+
+          <OfferSections sections={offerSections} noServiceData={noServiceData} />
         </>
       )}
     </div>
